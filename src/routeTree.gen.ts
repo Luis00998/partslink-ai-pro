@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPecasRouteImport } from './routes/_authenticated/pecas'
+import { Route as AuthenticatedPartsAiRouteImport } from './routes/_authenticated/parts-ai'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
@@ -39,6 +40,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedPecasRoute = AuthenticatedPecasRouteImport.update({
   id: '/pecas',
   path: '/pecas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPartsAiRoute = AuthenticatedPartsAiRouteImport.update({
+  id: '/parts-ai',
+  path: '/parts-ai',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
+  '/parts-ai': typeof AuthenticatedPartsAiRoute
   '/pecas': typeof AuthenticatedPecasRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
+  '/parts-ai': typeof AuthenticatedPartsAiRoute
   '/pecas': typeof AuthenticatedPecasRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
+  '/_authenticated/parts-ai': typeof AuthenticatedPartsAiRoute
   '/_authenticated/pecas': typeof AuthenticatedPecasRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/historico'
     | '/orcamentos'
+    | '/parts-ai'
     | '/pecas'
     | '/orcamentos/$id'
     | '/orcamentos/'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/fornecedores'
     | '/historico'
+    | '/parts-ai'
     | '/pecas'
     | '/orcamentos/$id'
     | '/orcamentos'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fornecedores'
     | '/_authenticated/historico'
     | '/_authenticated/orcamentos'
+    | '/_authenticated/parts-ai'
     | '/_authenticated/pecas'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/orcamentos/'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/pecas'
       fullPath: '/pecas'
       preLoaderRoute: typeof AuthenticatedPecasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/parts-ai': {
+      id: '/_authenticated/parts-ai'
+      path: '/parts-ai'
+      fullPath: '/parts-ai'
+      preLoaderRoute: typeof AuthenticatedPartsAiRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orcamentos': {
@@ -285,6 +304,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
+  AuthenticatedPartsAiRoute: typeof AuthenticatedPartsAiRoute
   AuthenticatedPecasRoute: typeof AuthenticatedPecasRoute
 }
 
@@ -295,6 +315,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
+  AuthenticatedPartsAiRoute: AuthenticatedPartsAiRoute,
   AuthenticatedPecasRoute: AuthenticatedPecasRoute,
 }
 
