@@ -14,16 +14,392 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          owner_id: string
+          telefone: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          owner_id: string
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          owner_id?: string
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      fornecedores: {
+        Row: {
+          cidade: string | null
+          cnpj: string | null
+          contato_comercial: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome_fantasia: string | null
+          owner_id: string
+          razao_social: string
+          site: string | null
+          telefone: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj?: string | null
+          contato_comercial?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          owner_id: string
+          razao_social: string
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj?: string | null
+          contato_comercial?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          owner_id?: string
+          razao_social?: string
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      historico_buscas: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          resultado: Json | null
+          termo: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          resultado?: Json | null
+          termo: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          resultado?: Json | null
+          termo?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      orcamento_itens: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          descricao: string
+          id: string
+          orcamento_id: string
+          owner_id: string
+          peca_id: string | null
+          preco_unitario: number
+          quantidade: number
+          subtotal: number
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          orcamento_id: string
+          owner_id: string
+          peca_id?: string | null
+          preco_unitario?: number
+          quantidade?: number
+          subtotal?: number
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          orcamento_id?: string
+          owner_id?: string
+          peca_id?: string | null
+          preco_unitario?: number
+          quantidade?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_itens_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string | null
+          created_at: string
+          desconto: number
+          frete: number
+          id: string
+          mao_de_obra: number
+          numero: number
+          observacoes: string | null
+          owner_id: string
+          status: string
+          total: number
+          updated_at: string
+          veiculo_info: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          desconto?: number
+          frete?: number
+          id?: string
+          mao_de_obra?: number
+          numero?: number
+          observacoes?: string | null
+          owner_id: string
+          status?: string
+          total?: number
+          updated_at?: string
+          veiculo_info?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          desconto?: number
+          frete?: number
+          id?: string
+          mao_de_obra?: number
+          numero?: number
+          observacoes?: string | null
+          owner_id?: string
+          status?: string
+          total?: number
+          updated_at?: string
+          veiculo_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pecas: {
+        Row: {
+          aplicacao: string | null
+          categoria: string | null
+          codigo_barras: string | null
+          codigo_interno: string | null
+          codigo_original: string | null
+          created_at: string
+          descricao: string
+          estoque: number
+          estoque_minimo: number
+          fabricante: string | null
+          fornecedor_id: string | null
+          id: string
+          localizacao: string | null
+          observacoes: string | null
+          owner_id: string
+          preco_compra: number | null
+          preco_venda: number | null
+          subcategoria: string | null
+          updated_at: string
+        }
+        Insert: {
+          aplicacao?: string | null
+          categoria?: string | null
+          codigo_barras?: string | null
+          codigo_interno?: string | null
+          codigo_original?: string | null
+          created_at?: string
+          descricao: string
+          estoque?: number
+          estoque_minimo?: number
+          fabricante?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          localizacao?: string | null
+          observacoes?: string | null
+          owner_id: string
+          preco_compra?: number | null
+          preco_venda?: number | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aplicacao?: string | null
+          categoria?: string | null
+          codigo_barras?: string | null
+          codigo_interno?: string | null
+          codigo_original?: string | null
+          created_at?: string
+          descricao?: string
+          estoque?: number
+          estoque_minimo?: number
+          fabricante?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          localizacao?: string | null
+          observacoes?: string | null
+          owner_id?: string
+          preco_compra?: number | null
+          preco_venda?: number | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pecas_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          empresa: string | null
+          id: string
+          nome: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          empresa?: string | null
+          id: string
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          empresa?: string | null
+          id?: string
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "gerente"
+        | "vendedor"
+        | "mecanico"
+        | "estoquista"
+        | "financeiro"
+        | "cliente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +526,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "gerente",
+        "vendedor",
+        "mecanico",
+        "estoquista",
+        "financeiro",
+        "cliente",
+      ],
+    },
   },
 } as const
