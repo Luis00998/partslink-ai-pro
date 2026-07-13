@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, FileText, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/orcamentos")({
+export const Route = createFileRoute("/_authenticated/orcamentos/")({
   head: () => ({ meta: [{ title: "Orçamentos — PartsLink AI Pro" }] }),
   component: OrcamentosPage,
 });
