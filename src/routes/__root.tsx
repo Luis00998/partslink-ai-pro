@@ -79,21 +79,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "PartsLink AI Pro — Catálogo e Identificação de Peças" },
+      { title: "PartsLink AI Pro — Catálogo de peças por chassi e placa" },
       {
         name: "description",
         content:
-          "Plataforma profissional para consulta de peças automotivas: busca por chassi (VIN), placa, códigos originais, equivalências e orçamentos. Linha pesada e leve.",
+          "Identifique peças por VIN, placa ou código original. Equivalências, orçamentos e catálogo para linha pesada e leve.",
       },
       { name: "theme-color", content: "#1a1d24" },
-      { property: "og:title", content: "PartsLink AI Pro" },
+      { property: "og:title", content: "PartsLink AI Pro — Catálogo de peças por chassi e placa" },
       {
         property: "og:description",
         content:
-          "Catálogo, identificação de peças e orçamentos para oficinas, distribuidores e concessionárias.",
+          "Identifique peças por VIN, placa ou código original. Equivalências, orçamentos e catálogo para linha pesada e leve.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "PartsLink AI Pro — Catálogo de peças por chassi e placa" },
+      { name: "twitter:description", content: "Identifique peças por VIN, placa ou código original. Equivalências, orçamentos e catálogo para linha pesada e leve." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/76ec7d3e-a066-4704-92c7-2296cae09af1/id-preview-c344fcb2--119a6f37-9e8f-4df3-a292-01992bb02755.lovable.app-1783975184618.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/76ec7d3e-a066-4704-92c7-2296cae09af1/id-preview-c344fcb2--119a6f37-9e8f-4df3-a292-01992bb02755.lovable.app-1783975184618.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PartsLink AI Pro — Catálogo de peças por chassi, placa e código" },
+      { title: "PartsLink AI Pro — Catálogo de peças por chassi e placa" },
       {
         name: "description",
         content:
