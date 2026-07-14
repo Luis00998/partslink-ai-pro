@@ -54,7 +54,16 @@ export const identificarPecaPorImagem = createServerFn({ method: "POST" })
       .filter((w) => w.length >= 3)
       .slice(0, 5);
 
-    let resultados: Array<Record<string, unknown>> = [];
+    type PecaHit = {
+      id: string;
+      codigo_original: string | null;
+      descricao: string;
+      fabricante: string | null;
+      categoria: string | null;
+      preco_venda: number | null;
+      estoque: number;
+    };
+    let resultados: PecaHit[] = [];
     if (keywords.length > 0) {
       const ors = keywords.flatMap((k) => [
         `descricao.ilike.%${k}%`,
@@ -66,7 +75,7 @@ export const identificarPecaPorImagem = createServerFn({ method: "POST" })
         .select("id, codigo_original, descricao, fabricante, categoria, preco_venda, estoque")
         .or(ors.join(","))
         .limit(20);
-      resultados = rows ?? [];
+      resultados = (rows ?? []) as PecaHit[];
     }
 
     return { description, keywords, resultados };

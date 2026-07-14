@@ -14,7 +14,10 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPartsAiRouteImport } from './routes/_authenticated/parts-ai'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBuscaRouteImport } from './routes/_authenticated/busca'
+import { Route as AuthenticatedPecaIdRouteImport } from './routes/_authenticated/peca.$id'
+import { Route as AuthenticatedCatalogoVinRouteImport } from './routes/_authenticated/catalogo.$vin'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -40,25 +43,47 @@ const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
   path: '/historico',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBuscaRoute = AuthenticatedBuscaRouteImport.update({
   id: '/busca',
   path: '/busca',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPecaIdRoute = AuthenticatedPecaIdRouteImport.update({
+  id: '/peca/$id',
+  path: '/peca/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCatalogoVinRoute =
+  AuthenticatedCatalogoVinRouteImport.update({
+    id: '/catalogo/$vin',
+    path: '/catalogo/$vin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/busca': typeof AuthenticatedBuscaRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
+  '/peca/$id': typeof AuthenticatedPecaIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/busca': typeof AuthenticatedBuscaRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
+  '/peca/$id': typeof AuthenticatedPecaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -66,22 +91,44 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/busca': typeof AuthenticatedBuscaRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/_authenticated/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
+  '/_authenticated/peca/$id': typeof AuthenticatedPecaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/busca' | '/historico' | '/parts-ai'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/busca'
+    | '/dashboard'
+    | '/historico'
+    | '/parts-ai'
+    | '/catalogo/$vin'
+    | '/peca/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/busca' | '/historico' | '/parts-ai'
+  to:
+    | '/'
+    | '/auth'
+    | '/busca'
+    | '/dashboard'
+    | '/historico'
+    | '/parts-ai'
+    | '/catalogo/$vin'
+    | '/peca/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/busca'
+    | '/_authenticated/dashboard'
     | '/_authenticated/historico'
     | '/_authenticated/parts-ai'
+    | '/_authenticated/catalogo/$vin'
+    | '/_authenticated/peca/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -127,6 +174,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoricoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/busca': {
       id: '/_authenticated/busca'
       path: '/busca'
@@ -134,19 +188,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBuscaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/peca/$id': {
+      id: '/_authenticated/peca/$id'
+      path: '/peca/$id'
+      fullPath: '/peca/$id'
+      preLoaderRoute: typeof AuthenticatedPecaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/catalogo/$vin': {
+      id: '/_authenticated/catalogo/$vin'
+      path: '/catalogo/$vin'
+      fullPath: '/catalogo/$vin'
+      preLoaderRoute: typeof AuthenticatedCatalogoVinRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBuscaRoute: typeof AuthenticatedBuscaRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedPartsAiRoute: typeof AuthenticatedPartsAiRoute
+  AuthenticatedCatalogoVinRoute: typeof AuthenticatedCatalogoVinRoute
+  AuthenticatedPecaIdRoute: typeof AuthenticatedPecaIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBuscaRoute: AuthenticatedBuscaRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedPartsAiRoute: AuthenticatedPartsAiRoute,
+  AuthenticatedCatalogoVinRoute: AuthenticatedCatalogoVinRoute,
+  AuthenticatedPecaIdRoute: AuthenticatedPecaIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
