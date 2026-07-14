@@ -32,6 +32,8 @@ function AuthedLayout() {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
+  const isWorkspace = location.pathname.startsWith("/catalogo/");
+
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -40,6 +42,11 @@ function AuthedLayout() {
     navigate({ to: "/auth", replace: true });
     router.invalidate();
   };
+
+  if (isWorkspace) {
+    return <Outlet />;
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
