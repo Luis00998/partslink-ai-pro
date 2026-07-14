@@ -24,7 +24,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) navigate({ to: "/busca" });
     });
   }, [navigate]);
 
@@ -35,7 +35,7 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo!");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/busca" });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -45,14 +45,14 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/busca`,
         data: { name: nome },
       },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Conta criada! Verifique seu e-mail se necessário.");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/busca" });
   };
 
   const handleGoogle = async () => {
@@ -66,7 +66,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/busca" });
   };
 
   return (
