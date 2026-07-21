@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter, useLocation, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Search, Sparkles, History, LogOut, Menu, X, Layers } from "lucide-react";
+import { Search, Sparkles, History, LogOut, Menu, X, Layers, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,8 +29,18 @@ function AuthedLayout() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+      setIsAdmin(!!data);
+    })();
+  }, []);
 
   const isWorkspace = location.pathname.startsWith("/catalogo/");
 
@@ -91,6 +101,21 @@ function AuthedLayout() {
                 {item.label}
               </Link>
             ))}
+            {isAdmin && (
+              <>
+                <div className="mt-3 px-3 pt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-t border-sidebar-border">
+                  Admin
+                </div>
+                <Link
+                  to="/admin/importar"
+                  className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground transition hover:bg-sidebar-accent"
+                  activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
+                >
+                  <Upload className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                  Importar peças
+                </Link>
+              </>
+            )}
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-3">
