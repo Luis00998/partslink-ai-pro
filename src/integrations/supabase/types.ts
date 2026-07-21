@@ -270,6 +270,7 @@ export type Database = {
           fabricante: string | null
           fornecedor_id: string | null
           id: string
+          imagem_url: string | null
           localizacao: string | null
           observacoes: string | null
           owner_id: string
@@ -291,6 +292,7 @@ export type Database = {
           fabricante?: string | null
           fornecedor_id?: string | null
           id?: string
+          imagem_url?: string | null
           localizacao?: string | null
           observacoes?: string | null
           owner_id: string
@@ -312,6 +314,7 @@ export type Database = {
           fabricante?: string | null
           fornecedor_id?: string | null
           id?: string
+          imagem_url?: string | null
           localizacao?: string | null
           observacoes?: string | null
           owner_id?: string
