@@ -18,6 +18,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBuscaRouteImport } from './routes/_authenticated/busca'
 import { Route as AuthenticatedPecaIdRouteImport } from './routes/_authenticated/peca.$id'
 import { Route as AuthenticatedCatalogoVinRouteImport } from './routes/_authenticated/catalogo.$vin'
+import { Route as AuthenticatedAdminImportarRouteImport } from './routes/_authenticated/admin.importar'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -64,6 +65,12 @@ const AuthenticatedCatalogoVinRoute =
     path: '/catalogo/$vin',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminImportarRoute =
+  AuthenticatedAdminImportarRouteImport.update({
+    id: '/admin/importar',
+    path: '/admin/importar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
   '/peca/$id': typeof AuthenticatedPecaIdRoute
 }
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
   '/peca/$id': typeof AuthenticatedPecaIdRoute
 }
@@ -94,6 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/parts-ai': typeof AuthenticatedPartsAiRoute
+  '/_authenticated/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/_authenticated/catalogo/$vin': typeof AuthenticatedCatalogoVinRoute
   '/_authenticated/peca/$id': typeof AuthenticatedPecaIdRoute
 }
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/historico'
     | '/parts-ai'
+    | '/admin/importar'
     | '/catalogo/$vin'
     | '/peca/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/historico'
     | '/parts-ai'
+    | '/admin/importar'
     | '/catalogo/$vin'
     | '/peca/$id'
   id:
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/historico'
     | '/_authenticated/parts-ai'
+    | '/_authenticated/admin/importar'
     | '/_authenticated/catalogo/$vin'
     | '/_authenticated/peca/$id'
   fileRoutesById: FileRoutesById
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCatalogoVinRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/importar': {
+      id: '/_authenticated/admin/importar'
+      path: '/admin/importar'
+      fullPath: '/admin/importar'
+      preLoaderRoute: typeof AuthenticatedAdminImportarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -210,6 +230,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedPartsAiRoute: typeof AuthenticatedPartsAiRoute
+  AuthenticatedAdminImportarRoute: typeof AuthenticatedAdminImportarRoute
   AuthenticatedCatalogoVinRoute: typeof AuthenticatedCatalogoVinRoute
   AuthenticatedPecaIdRoute: typeof AuthenticatedPecaIdRoute
 }
@@ -219,6 +240,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedPartsAiRoute: AuthenticatedPartsAiRoute,
+  AuthenticatedAdminImportarRoute: AuthenticatedAdminImportarRoute,
   AuthenticatedCatalogoVinRoute: AuthenticatedCatalogoVinRoute,
   AuthenticatedPecaIdRoute: AuthenticatedPecaIdRoute,
 }
