@@ -155,6 +155,7 @@ function VinSearch() {
 function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: string; fields: string[] }) {
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
+  const [lastTerm, setLastTerm] = useState("");
   const mut = useMutation({
     mutationFn: async (t: string) => {
       const like = `%${t.replace(/[%_]/g, "")}%`;
@@ -172,7 +173,14 @@ function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: st
 
   return (
     <Panel>
-      <form onSubmit={(e) => { e.preventDefault(); if (term.trim()) mut.mutate(term.trim()); }} className="flex gap-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = term.trim();
+          if (v) { setLastTerm(v); mut.mutate(v); }
+        }}
+        className="flex gap-3"
+      >
         <Input placeholder={placeholder} value={term} onChange={(e) => setTerm(e.target.value)} className="text-base" />
         <Button type="submit" disabled={mut.isPending || !term.trim()}>
           {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -181,16 +189,119 @@ function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: st
 
       {mut.data && (
         mut.data.length === 0 ? (
-          <NoticeWarn
-            title="Não encontrei esse item na base de dados configurada"
-            message="Nenhum registro corresponde ao termo pesquisado. Nenhuma equivalência será sugerida por dedução — cadastre a peça ou conecte uma fonte de dados oficial."
-          />
+          <SmartSearchFallback termo={lastTerm} onSaved={(id) => navigate({ to: "/peca/$id", params: { id } })} />
         ) : (
           <ResultList items={mut.data} onOpen={(id) => navigate({ to: "/peca/$id", params: { id } })} />
         )
       )}
     </Panel>
   );
+}
+
+function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: string) => void }) {
+  const runSmart = useServerFn(smartSearchPart);
+  const saveSmart = useServerFn(savePartFromSmartSearch);
+  const [savingIdx, setSavingIdx] = useState<number | null>(null);
+
+  const search = useMutation({
+    mutationFn: async () => runSmart({ data: { termo, tipo: "original" } }),
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const save = useMutation({
+    mutationFn: async (c: SmartCandidate) => saveSmart({ data: { candidate: c, termo_original: termo } }),
+    onSuccess: ({ id }) => {
+      toast.success("Peça salva na base");
+      onSaved(id);
+    },
+    onError: (e) => toast.error((e as Error).message),
+    onSettled: () => setSavingIdx(null),
+  });
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
+        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+        <div className="flex-1">
+          <div className="font-medium text-warning">Não encontrei esse item na base de dados</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            Nenhum registro corresponde a <span className="font-mono">{termo}</span> no catálogo interno.
+            Use a Pesquisa Inteligente para consultar fontes públicas confiáveis (fabricantes, distribuidores, catálogos técnicos) sem inventar códigos.
+          </div>
+          {!search.data && (
+            <Button size="sm" className="mt-3" onClick={() => search.mutate()} disabled={search.isPending}>
+              {search.isPending
+                ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Pesquisando na internet…</>)
+                : (<><Sparkles className="mr-2 h-4 w-4" /> Pesquisa Inteligente</>)}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {search.data && search.data.candidatos.length === 0 && (
+        <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted-foreground">
+          Nenhuma referência pública encontrada.
+        </div>
+      )}
+
+      {search.data && search.data.candidatos.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            {search.data.candidatos.length} referência(s) encontrada(s) em fontes públicas — revise e escolha qual salvar. Nada é salvo automaticamente.
+          </div>
+          {search.data.candidatos.map((c, i) => (
+            <div key={i} className="rounded-lg border border-border bg-surface p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm">{c.codigo_original ?? "sem código OEM"}</span>
+                    <ConfiancaBadge nivel={c.fonte_confianca} />
+                  </div>
+                  <div className="mt-1 text-sm font-medium">{c.descricao}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {c.fabricante ?? "fabricante não informado"}
+                    {c.categoria ? ` · ${c.categoria}` : ""}
+                  </div>
+                  {c.aplicacao && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <span className="uppercase tracking-wide">Aplicações: </span>{c.aplicacao}
+                    </div>
+                  )}
+                  {c.justificativa && (
+                    <div className="mt-2 text-xs italic text-muted-foreground">{c.justificativa}</div>
+                  )}
+                  <a
+                    href={c.fonte_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" /> {c.fonte_nome}
+                  </a>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => { setSavingIdx(i); save.mutate(c); }}
+                  disabled={save.isPending}
+                >
+                  {savingIdx === i && save.isPending
+                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    : <Save className="mr-2 h-4 w-4" />}
+                  Salvar na Base
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfiancaBadge({ nivel }: { nivel: "alta" | "media" | "baixa" }) {
+  const label = nivel === "alta" ? "Confiança alta" : nivel === "media" ? "Confiança média" : "Confiança baixa";
+  const variant = nivel === "alta" ? "default" : nivel === "media" ? "secondary" : "outline";
+  return <Badge variant={variant as never} className="text-[10px] uppercase tracking-wide">{label}</Badge>;
 }
 
 function ImageSearch() {
