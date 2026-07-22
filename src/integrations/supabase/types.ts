@@ -268,9 +268,13 @@ export type Database = {
           estoque: number
           estoque_minimo: number
           fabricante: string | null
+          fonte_confianca: string | null
+          fonte_url: string | null
           fornecedor_id: string | null
           id: string
           imagem_url: string | null
+          importado_em: string | null
+          importado_por: string | null
           localizacao: string | null
           observacoes: string | null
           owner_id: string
@@ -290,9 +294,13 @@ export type Database = {
           estoque?: number
           estoque_minimo?: number
           fabricante?: string | null
+          fonte_confianca?: string | null
+          fonte_url?: string | null
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
           localizacao?: string | null
           observacoes?: string | null
           owner_id: string
@@ -312,9 +320,13 @@ export type Database = {
           estoque?: number
           estoque_minimo?: number
           fabricante?: string | null
+          fonte_confianca?: string | null
+          fonte_url?: string | null
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
           localizacao?: string | null
           observacoes?: string | null
           owner_id?: string
