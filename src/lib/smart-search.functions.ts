@@ -41,12 +41,12 @@ export type SmartSearchResult = {
   termo: string;
 };
 
-async function firecrawlSearch(termo: string) {
+type PublicSource = { url: string; title: string; description: string; markdown: string };
+
+async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const fcKey = process.env.FIRECRAWL_API_KEY;
-  if (!lovableKey || !fcKey) {
-    throw new Error("Pesquisa Inteligente indisponível (Firecrawl não configurado).");
-  }
+  if (!lovableKey || !fcKey) return [];
 
   const query = `${termo} peça automotiva OEM fabricante aplicação`;
   const res = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/search", {
@@ -64,8 +64,8 @@ async function firecrawlSearch(termo: string) {
     }),
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Falha na busca pública [${res.status}]: ${body.slice(0, 200)}`);
+    console.error(`[Firecrawl] ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return [];
   }
   const json = (await res.json()) as {
     data?: Array<{ url?: string; title?: string; description?: string; markdown?: string }>;
@@ -80,6 +80,55 @@ async function firecrawlSearch(termo: string) {
       description: r.description ?? "",
       markdown: (r.markdown ?? "").slice(0, 4000),
     }));
+}
+
+async function tavilySearch(termo: string): Promise<PublicSource[]> {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  if (!tavilyKey) return [];
+
+  const query = `${termo} peça automotiva OEM fabricante aplicação`;
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: tavilyKey,
+      query,
+      search_depth: "advanced",
+      include_answer: false,
+      include_raw_content: true,
+      max_results: 6,
+    }),
+  });
+  if (!res.ok) {
+    console.error(`[Tavily] ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return [];
+  }
+  const json = (await res.json()) as {
+    results?: Array<{ url?: string; title?: string; content?: string; raw_content?: string }>;
+  };
+  return (json.results ?? [])
+    .filter((r) => r.url)
+    .map((r) => ({
+      url: r.url!,
+      title: r.title ?? "",
+      description: r.content ?? "",
+      markdown: (r.raw_content ?? r.content ?? "").slice(0, 4000),
+    }));
+}
+
+async function publicSearch(termo: string): Promise<PublicSource[]> {
+  const [fc, tv] = await Promise.all([firecrawlSearch(termo), tavilySearch(termo)]);
+  const seen = new Set<string>();
+  const merged: PublicSource[] = [];
+  for (const s of [...fc, ...tv]) {
+    if (seen.has(s.url)) continue;
+    seen.add(s.url);
+    merged.push(s);
+  }
+  if (merged.length === 0 && !process.env.FIRECRAWL_API_KEY && !process.env.TAVILY_API_KEY) {
+    throw new Error("Pesquisa Inteligente indisponível (nenhum provedor de busca configurado).");
+  }
+  return merged.slice(0, 8);
 }
 
 async function extractCandidatesWithAI(
