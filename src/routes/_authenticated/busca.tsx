@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/busca")({
   component: BuscaPage,
 });
 
-type Tipo = "placa" | "vin" | "original" | "fabricante" | "nome" | "imagem";
+type Tipo = "placa" | "vin" | "original" | "fabricante" | "nome" | "imagem" | "smart";
 
 async function saveHistorico(tipo: Tipo, termo: string, resultado: unknown) {
   const uid = (await supabase.auth.getUser()).data.user?.id;
