@@ -10,8 +10,11 @@ import { Loader2, Search, AlertCircle, CheckCircle2, Camera, Upload, Barcode, Fi
 import { useServerFn } from "@tanstack/react-start";
 import { decodeVin, decodePlaca } from "@/lib/vehicle-lookup.functions";
 import { identificarPecaPorImagem } from "@/lib/image-search.functions";
+import { smartSearchPart, savePartFromSmartSearch, type SmartCandidate } from "@/lib/smart-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Sparkles, Save } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/busca")({
   head: () => ({ meta: [{ title: "Buscar peça — PartsLink AI Pro" }] }),
