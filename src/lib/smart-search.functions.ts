@@ -227,7 +227,7 @@ export const smartSearchPart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SearchInput.parse(d))
   .handler(async ({ data, context }): Promise<SmartSearchResult> => {
-    const sources = await firecrawlSearch(data.termo);
+    const sources = await publicSearch(data.termo);
     const candidatos = sources.length > 0 ? await extractCandidatesWithAI(data.termo, sources) : [];
 
     // registrar no histórico
