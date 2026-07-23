@@ -46,7 +46,11 @@ type PublicSource = { url: string; title: string; description: string; markdown:
 async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const fcKey = process.env.FIRECRAWL_API_KEY;
-  if (!lovableKey || !fcKey) return [];
+  console.log(`[SmartSearch][Firecrawl] start termo="${termo}" hasLovableKey=${!!lovableKey} hasFcKey=${!!fcKey}`);
+  if (!lovableKey || !fcKey) {
+    console.warn("[SmartSearch][Firecrawl] SKIPPED — missing LOVABLE_API_KEY or FIRECRAWL_API_KEY");
+    return [];
+  }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação`;
   const res = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/search", {
@@ -63,8 +67,9 @@ async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
       scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
     }),
   });
+  console.log(`[SmartSearch][Firecrawl] response status=${res.status}`);
   if (!res.ok) {
-    console.error(`[Firecrawl] ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    console.error(`[SmartSearch][Firecrawl] ERROR ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return [];
   }
   const json = (await res.json()) as {
@@ -72,6 +77,7 @@ async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
     web?: Array<{ url?: string; title?: string; description?: string; markdown?: string }>;
   };
   const rows = json.data ?? json.web ?? [];
+  console.log(`[SmartSearch][Firecrawl] rows=${rows.length}`);
   return rows
     .filter((r) => r.url)
     .map((r) => ({
@@ -84,7 +90,11 @@ async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
 
 async function tavilySearch(termo: string): Promise<PublicSource[]> {
   const tavilyKey = process.env.TAVILY_API_KEY;
-  if (!tavilyKey) return [];
+  console.log(`[SmartSearch][Tavily] start termo="${termo}" hasKey=${!!tavilyKey}`);
+  if (!tavilyKey) {
+    console.warn("[SmartSearch][Tavily] SKIPPED — missing TAVILY_API_KEY");
+    return [];
+  }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação`;
   const res = await fetch("https://api.tavily.com/search", {
@@ -99,14 +109,17 @@ async function tavilySearch(termo: string): Promise<PublicSource[]> {
       max_results: 6,
     }),
   });
+  console.log(`[SmartSearch][Tavily] response status=${res.status}`);
   if (!res.ok) {
-    console.error(`[Tavily] ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    console.error(`[SmartSearch][Tavily] ERROR ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return [];
   }
   const json = (await res.json()) as {
     results?: Array<{ url?: string; title?: string; content?: string; raw_content?: string }>;
   };
-  return (json.results ?? [])
+  const results = json.results ?? [];
+  console.log(`[SmartSearch][Tavily] results=${results.length}`);
+  return results
     .filter((r) => r.url)
     .map((r) => ({
       url: r.url!,
@@ -117,7 +130,12 @@ async function tavilySearch(termo: string): Promise<PublicSource[]> {
 }
 
 async function publicSearch(termo: string): Promise<PublicSource[]> {
-  const [fc, tv] = await Promise.all([firecrawlSearch(termo), tavilySearch(termo)]);
+  console.log(`[SmartSearch] publicSearch invoked termo="${termo}"`);
+  const [fc, tv] = await Promise.all([
+    firecrawlSearch(termo).catch((e) => { console.error("[SmartSearch][Firecrawl] threw:", e); return [] as PublicSource[]; }),
+    tavilySearch(termo).catch((e) => { console.error("[SmartSearch][Tavily] threw:", e); return [] as PublicSource[]; }),
+  ]);
+  console.log(`[SmartSearch] provider counts firecrawl=${fc.length} tavily=${tv.length}`);
   const seen = new Set<string>();
   const merged: PublicSource[] = [];
   for (const s of [...fc, ...tv]) {
@@ -125,6 +143,7 @@ async function publicSearch(termo: string): Promise<PublicSource[]> {
     seen.add(s.url);
     merged.push(s);
   }
+  console.log(`[SmartSearch] merged unique=${merged.length}`);
   if (merged.length === 0 && !process.env.FIRECRAWL_API_KEY && !process.env.TAVILY_API_KEY) {
     throw new Error("Pesquisa Inteligente indisponível (nenhum provedor de busca configurado).");
   }
@@ -227,8 +246,11 @@ export const smartSearchPart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SearchInput.parse(d))
   .handler(async ({ data, context }): Promise<SmartSearchResult> => {
+    console.log(`[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`);
     const sources = await publicSearch(data.termo);
+    console.log(`[SmartSearch] sources total=${sources.length}`);
     const candidatos = sources.length > 0 ? await extractCandidatesWithAI(data.termo, sources) : [];
+    console.log(`[SmartSearch] candidatos total=${candidatos.length}`);
 
     // registrar no histórico
     await context.supabase.from("historico_buscas").insert({
