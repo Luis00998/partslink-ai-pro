@@ -204,9 +204,22 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
   const [savingIdx, setSavingIdx] = useState<number | null>(null);
 
   const search = useMutation({
-    mutationFn: async () => runSmart({ data: { termo, tipo: "original" } }),
+    mutationFn: async () => {
+      console.log(`[SmartSearch][client] auto-triggering fallback for termo="${termo}"`);
+      return runSmart({ data: { termo, tipo: "original" } });
+    },
+    onSuccess: (r) => {
+      console.log(`[SmartSearch][client] result candidatos=${r.candidatos.length} fontes=${r.fontes_consultadas.length}`);
+    },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  // Auto-dispara a pesquisa externa assim que o fallback aparece.
+  useEffect(() => {
+    if (!termo) return;
+    search.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [termo]);
 
   const save = useMutation({
     mutationFn: async (c: SmartCandidate) => saveSmart({ data: { candidate: c, termo_original: termo } }),
@@ -223,20 +236,24 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
       <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
         <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
         <div className="flex-1">
-          <div className="font-medium text-warning">Não encontrei esse item na base de dados</div>
+          <div className="font-medium text-warning">Não encontrei esse item na base interna</div>
           <div className="mt-1 text-sm text-muted-foreground">
             Nenhum registro corresponde a <span className="font-mono">{termo}</span> no catálogo interno.
-            Use a Pesquisa Inteligente para consultar fontes públicas confiáveis (fabricantes, distribuidores, catálogos técnicos) sem inventar códigos.
+            Consultando automaticamente fontes públicas (Firecrawl + Tavily) — sem inventar códigos.
           </div>
-          {!search.data && (
-            <Button size="sm" className="mt-3" onClick={() => search.mutate()} disabled={search.isPending}>
-              {search.isPending
-                ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Pesquisando na internet…</>)
-                : (<><Sparkles className="mr-2 h-4 w-4" /> Pesquisa Inteligente</>)}
+          {search.isPending && (
+            <div className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Pesquisando na internet…
+            </div>
+          )}
+          {!search.isPending && search.data && (
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => search.mutate()}>
+              <Sparkles className="mr-2 h-4 w-4" /> Pesquisar novamente
             </Button>
           )}
         </div>
       </div>
+
 
       {search.data && search.data.candidatos.length === 0 && (
         <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted-foreground">
