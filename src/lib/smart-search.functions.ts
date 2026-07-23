@@ -246,8 +246,11 @@ export const smartSearchPart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SearchInput.parse(d))
   .handler(async ({ data, context }): Promise<SmartSearchResult> => {
+    console.log(`[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`);
     const sources = await publicSearch(data.termo);
+    console.log(`[SmartSearch] sources total=${sources.length}`);
     const candidatos = sources.length > 0 ? await extractCandidatesWithAI(data.termo, sources) : [];
+    console.log(`[SmartSearch] candidatos total=${candidatos.length}`);
 
     // registrar no histórico
     await context.supabase.from("historico_buscas").insert({
