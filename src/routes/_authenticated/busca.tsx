@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { PageHeader, PageBody } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
