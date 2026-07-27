@@ -21,6 +21,16 @@ function safeHost(value: string) {
   }
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function extractJsonObject(content: string): unknown {
   try {
     return JSON.parse(content);
@@ -90,7 +100,7 @@ export async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
   }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação catálogo técnico`;
-  const res = await fetch(endpoint, {
+  const res = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -99,7 +109,7 @@ export async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
       lang: "pt",
       scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
     }),
-  });
+  }, 25000);
 
   console.log(`[SmartSearch][Firecrawl] status=${res.status}`);
   if (!res.ok) {
@@ -122,7 +132,7 @@ export async function tavilySearch(termo: string): Promise<PublicSource[]> {
   }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação catálogo técnico`;
-  const res = await fetch("https://api.tavily.com/search", {
+  const res = await fetchWithTimeout("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -133,7 +143,7 @@ export async function tavilySearch(termo: string): Promise<PublicSource[]> {
       include_raw_content: true,
       max_results: 6,
     }),
-  });
+  }, 15000);
 
   console.log(`[SmartSearch][Tavily] status=${res.status}`);
   if (!res.ok) {
@@ -222,7 +232,7 @@ Extraia candidatos das fontes abaixo:
 
 ${context}`;
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
     body: JSON.stringify({
@@ -233,7 +243,7 @@ ${context}`;
       ],
       response_format: { type: "json_object" },
     }),
-  });
+  }, 45000);
 
   console.log(`[SmartSearch][Extractor] status=${res.status}`);
   if (!res.ok) {
