@@ -48,11 +48,21 @@ function extractJsonObject(content: string): unknown {
 
 function normalizeSearchRows(json: unknown): PublicSource[] {
   const payload = json as {
-    data?: Array<Record<string, unknown>>;
+    data?: Array<Record<string, unknown>> | { web?: Array<Record<string, unknown>>; results?: Array<Record<string, unknown>> };
     web?: Array<Record<string, unknown>>;
     results?: Array<Record<string, unknown>>;
   };
-  const rows = payload.data ?? payload.web ?? payload.results ?? [];
+  const rows = Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.web)
+      ? payload.web
+      : Array.isArray(payload.results)
+        ? payload.results
+        : Array.isArray(payload.data?.web)
+          ? payload.data.web
+          : Array.isArray(payload.data?.results)
+            ? payload.data.results
+            : [];
   const sources: PublicSource[] = [];
 
   for (const row of rows) {
