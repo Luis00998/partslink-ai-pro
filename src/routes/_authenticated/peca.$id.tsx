@@ -143,14 +143,29 @@ function PecaPage() {
           <Card className="border-border/60 shadow-card lg:col-span-3">
             <CardContent className="p-6">
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-widest text-muted-foreground">Equivalências</h3>
-              <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-warning">Nenhuma equivalência cadastrada nesta peça.</span>
-                  {" "}O sistema NÃO gera equivalências por dedução (Tecfil, Mann, Mahle, Bosch, Donaldson, Fleetguard, etc.).
-                  Cadastre equivalências manualmente ou conecte uma fonte oficial (TecDoc, catálogo do fabricante).
+              {data.equivalencias && (data.equivalencias as any[]).length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {(data.equivalencias as any[]).map((eq, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface/40">
+                      <div>
+                        <div className="text-xs text-muted-foreground uppercase">{eq.fabricante}</div>
+                        <div className="font-mono text-sm">{eq.codigo}</div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/busca", search: { q: eq.codigo } } as any)}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-warning">Nenhuma equivalência cadastrada nesta peça.</span>
+                    {" "}O sistema NÃO gera equivalências por dedução.
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
