@@ -201,6 +201,7 @@ function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: st
 function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: string) => void }) {
   const runSmart = useServerFn(smartSearchPart);
   const saveSmart = useServerFn(savePartFromSmartSearch);
+  const navigate = useNavigate();
   const [savingIdx, setSavingIdx] = useState<number | null>(null);
 
   const search = useMutation({
@@ -264,7 +265,7 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
       {search.data && search.data.candidatos.length > 0 && (
         <div className="space-y-3">
           <div className="text-xs text-muted-foreground">
-            {search.data.candidatos.length} referência(s) encontrada(s) em fontes públicas — revise e escolha qual salvar. Nada é salvo automaticamente.
+            {search.data.candidatos.length} referência(s) encontrada(s) em fontes públicas — a peça foi identificada externamente.
           </div>
           {search.data.candidatos.map((c, i) => (
             <div key={i} className="rounded-lg border border-border bg-surface p-4">
@@ -304,7 +305,7 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
                   {savingIdx === i && save.isPending
                     ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     : <Save className="mr-2 h-4 w-4" />}
-                  Salvar na Base
+                  ➕ Adicionar ao Catálogo
                 </Button>
               </div>
             </div>

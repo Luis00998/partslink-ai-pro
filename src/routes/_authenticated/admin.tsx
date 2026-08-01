@@ -14,17 +14,30 @@ function AdminDashboard() {
   const statsQuery = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      // Get current counts
-      const { count: pecasCount } = await supabase.from('pecas').select('*', { count: 'exact', head: true });
-      const { count: buscasCount } = await supabase.from('historico_buscas').select('*', { count: 'exact', head: true });
-      
-      // Get searches without results (where results count is 0 in the JSON)
-      const { data: buscasSemResultado } = await supabase
-        .from('historico_buscas')
+      // Get counts from the optimized view
+      const { data: statsView, error: statsError } = await supabase
+        .from('admin_stats' as any)
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .single();
       
+      if (statsError) {
+        console.error('Error fetching admin stats view:', statsError);
+        // Fallback to manual counts if view fails
+        const { count: pecasCount } = await supabase.from('pecas').select('*', { count: 'exact', head: true });
+        const { count: buscasCount } = await supabase.from('historico_buscas').select('*', { count: 'exact', head: true });
+        
+        return {
+          totalPecas: pecasCount || 0,
+          totalBuscas: buscasCount || 0,
+          pesquisasBanco: 0,
+          pesquisasInternet: 0,
+          pecasEnriquecidas: 0,
+          economiaTavily: 0,
+          buscasSemResultado: [],
+          ultimasImportacoes: []
+        };
+      }
+
       // Get latest parts
       const { data: ultimasImportacoes } = await supabase
         .from('pecas')
@@ -32,15 +45,27 @@ function AdminDashboard() {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Simple filter for no-results searches in memory since JSON filtering can be complex
-      const failedSearches = (buscasSemResultado || []).filter((b: any) => {
+      const { data: ultimasBuscas } = await supabase
+        .from('historico_buscas')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const failedSearches = (ultimasBuscas || []).filter((b: any) => {
          const res = b.resultado as any;
          return res && (res.total === 0 || res.encontrado === false);
       }).slice(0, 5);
 
+      const totalInternet = (statsView as any)?.pesquisas_internet || 0;
+      const totalBanco = (statsView as any)?.pesquisas_banco || 0;
+      
       return {
-        totalPecas: pecasCount || 0,
-        totalBuscas: buscasCount || 0,
+        totalPecas: (statsView as any)?.total_pecas || 0,
+        totalBuscas: (statsView as any)?.total_pesquisas || 0,
+        pesquisasBanco: totalBanco,
+        pesquisasInternet: totalInternet,
+        pecasEnriquecidas: (statsView as any)?.pecas_enriquecidas || 0,
+        economiaTavily: totalBanco * 0.05, // Estimate 0.05 credits saved per local search
         buscasSemResultado: failedSearches,
         ultimasImportacoes: ultimasImportacoes || []
       };
@@ -57,8 +82,14 @@ function AdminDashboard() {
       <PageBody>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Total de Peças" value={stats.totalPecas} icon={Database} description="No catálogo" />
-          <StatCard title="Total de Pesquisas" value={stats.totalBuscas} icon={Search} description="Histórico total" />
-          <StatCard title="Enriquecidas (IA)" value={stats.ultimasImportacoes.filter((p: any) => p.fonte_url).length} icon={TrendingUp} description="Via Smart Search" />
+          <StatCard title="Pesquisas Totais" value={stats.totalBuscas} icon={Search} description="Histórico total" />
+          <StatCard title="Respondido pelo Banco" value={stats.pesquisasBanco} icon={Clock} description="Acesso rápido" />
+          <StatCard title="Respondido pela Internet" value={stats.pesquisasInternet} icon={TrendingUp} description="Via Smart Search" />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+          <StatCard title="Economia Tavily" value={stats.economiaTavily.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })} icon={TrendingUp} description="Créditos poupados" />
+          <StatCard title="Peças Enriquecidas" value={stats.pecasEnriquecidas} icon={Database} description="Salvas via IA" />
           <StatCard title="Falhas de Busca" value={stats.buscasSemResultado.length} icon={AlertTriangle} description="Últimas sem resultado" />
         </div>
 
