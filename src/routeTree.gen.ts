@@ -16,6 +16,7 @@ import { Route as AuthenticatedPartsAiRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBuscaRouteImport } from './routes/_authenticated/busca'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPecaIdRouteImport } from './routes/_authenticated/peca.$id'
 import { Route as AuthenticatedCatalogoVinRouteImport } from './routes/_authenticated/catalogo.$vin'
 import { Route as AuthenticatedAdminImportarRouteImport } from './routes/_authenticated/admin.importar'
@@ -54,6 +55,11 @@ const AuthenticatedBuscaRoute = AuthenticatedBuscaRouteImport.update({
   path: '/busca',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPecaIdRoute = AuthenticatedPecaIdRouteImport.update({
   id: '/peca/$id',
   path: '/peca/$id',
@@ -67,14 +73,15 @@ const AuthenticatedCatalogoVinRoute =
   } as any)
 const AuthenticatedAdminImportarRoute =
   AuthenticatedAdminImportarRouteImport.update({
-    id: '/admin/importar',
-    path: '/admin/importar',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/importar',
+    path: '/importar',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/busca': typeof AuthenticatedBuscaRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/busca': typeof AuthenticatedBuscaRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/historico': typeof AuthenticatedHistoricoRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/busca': typeof AuthenticatedBuscaRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/busca'
     | '/dashboard'
     | '/historico'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/admin'
     | '/busca'
     | '/dashboard'
     | '/historico'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/busca'
     | '/_authenticated/dashboard'
     | '/_authenticated/historico'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBuscaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/peca/$id': {
       id: '/_authenticated/peca/$id'
       path: '/peca/$id'
@@ -217,30 +236,41 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/importar': {
       id: '/_authenticated/admin/importar'
-      path: '/admin/importar'
+      path: '/importar'
       fullPath: '/admin/importar'
       preLoaderRoute: typeof AuthenticatedAdminImportarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminImportarRoute: typeof AuthenticatedAdminImportarRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminImportarRoute: AuthenticatedAdminImportarRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedBuscaRoute: typeof AuthenticatedBuscaRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedPartsAiRoute: typeof AuthenticatedPartsAiRoute
-  AuthenticatedAdminImportarRoute: typeof AuthenticatedAdminImportarRoute
   AuthenticatedCatalogoVinRoute: typeof AuthenticatedCatalogoVinRoute
   AuthenticatedPecaIdRoute: typeof AuthenticatedPecaIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedBuscaRoute: AuthenticatedBuscaRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedPartsAiRoute: AuthenticatedPartsAiRoute,
-  AuthenticatedAdminImportarRoute: AuthenticatedAdminImportarRoute,
   AuthenticatedCatalogoVinRoute: AuthenticatedCatalogoVinRoute,
   AuthenticatedPecaIdRoute: AuthenticatedPecaIdRoute,
 }
