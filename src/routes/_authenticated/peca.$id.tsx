@@ -78,11 +78,35 @@ function PecaPage() {
 
               <div className="my-6 h-px bg-border" />
 
+              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                <Field label="Torque" value={data.torque} />
+                <Field label="Qtd por veículo" value={data.quantidade_por_veiculo} />
+                <Field label="Tipo de óleo" value={data.tipo_oleo} />
+                <Field label="Qtd de óleo" value={data.quantidade_oleo} />
+                <Field label="Líquido arrefecimento" value={data.liquido_arrefecimento} />
+                <Field label="Tempo estimado" value={data.tempo_estimado} />
+              </div>
+
+              <div className="my-6 h-px bg-border" />
+
+              <div className="space-y-4">
+                <FieldBlock label="Ferramentas necessárias" value={data.ferramentas_necessarias} />
+                <FieldBlock label="Procedimentos técnicos" value={data.procedimentos_tecnicos} />
+                <FieldBlock label="Fonte" value={data.fonte_url ? `${data.fonte_nome ?? "Web"} (${data.fonte_url})` : null} />
+              </div>
+
+              <div className="my-6 h-px bg-border" />
+
               <div className="flex flex-wrap items-center gap-4">
                 {preco && <div className="text-2xl font-semibold">{preco}</div>}
                 <Badge variant={data.estoque > 0 ? "default" : "outline"}>
                   {data.estoque > 0 ? `${data.estoque} em estoque` : "Sem estoque"}
                 </Badge>
+                {data.fonte_confianca && (
+                  <Badge variant="secondary" className="uppercase tracking-wide">
+                    Confiança: {data.fonte_confianca}
+                  </Badge>
+                )}
               </div>
             </CardContent>
           </Card>
