@@ -5,7 +5,8 @@ import { PageHeader, PageBody } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, AlertCircle, Loader2, Copy, Share2, Star, FileDown, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/peca/$id")({
   head: () => ({ meta: [{ title: "Ficha técnica — PartsLink AI Pro" }] }),
@@ -37,20 +38,48 @@ function PecaPage() {
         title={data.descricao}
         description={data.categoria ?? "Ficha técnica da peça"}
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate({ to: "/busca" })}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/busca" })}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              navigator.clipboard.writeText(data.codigo_original || "");
+              toast.success("OEM copiado!");
+            }}>
+              <Copy className="mr-2 h-4 w-4" /> Copiar OEM
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => toast.info("Funcionalidade em desenvolvimento")}>
+              <Share2 className="mr-2 h-4 w-4" /> Compartilhar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => toast.info("Funcionalidade em desenvolvimento")}>
+              <Star className="mr-2 h-4 w-4" /> Favoritar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <FileDown className="mr-2 h-4 w-4" /> PDF
+            </Button>
+          </div>
         }
       />
       <PageBody>
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="border-border/60 shadow-card lg:col-span-1">
-            <CardContent className="flex aspect-square items-center justify-center bg-surface/60 p-6">
-              <div className="text-center text-muted-foreground">
-                <Package className="mx-auto h-14 w-14" />
-                <div className="mt-3 text-xs">Imagem oficial não disponível</div>
-              </div>
+            <CardContent className="p-0 overflow-hidden bg-surface/60 aspect-square flex flex-col items-center justify-center">
+              {data.imagem_url ? (
+                <img src={data.imagem_url} alt={data.descricao} className="h-full w-full object-contain p-4 transition-transform hover:scale-110 cursor-zoom-in" />
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <Package className="mx-auto h-14 w-14" />
+                  <div className="mt-3 text-xs">Imagem indisponível</div>
+                </div>
+              )}
             </CardContent>
+            {data.imagens_adicionais && (data.imagens_adicionais as string[]).length > 0 && (
+              <div className="p-4 flex gap-2 overflow-x-auto border-t border-border">
+                {(data.imagens_adicionais as string[]).map((img, idx) => (
+                   <img key={idx} src={img} className="h-12 w-12 object-cover rounded border border-border cursor-pointer hover:border-primary" />
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="border-border/60 shadow-card lg:col-span-2">
