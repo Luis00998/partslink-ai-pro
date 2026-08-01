@@ -222,7 +222,7 @@ function deterministicAnswer(result: Record<string, unknown>) {
         fonte_url?: string;
         fonte_confianca?: string;
       };
-      return `${index + 1}. OEM: ${candidate.codigo_original ?? "não informado"}\n   Peça: ${candidate.descricao ?? "não informado"}\n   Fabricante: ${candidate.fabricante ?? "não informado"}\n   Aplicações: ${candidate.aplicacao ?? "não informado"}\n   Fonte: ${candidate.fonte_url ?? "não informada"}\n   Confiança: ${candidate.fonte_confianca ?? "media"}`;
+      return `${index + 1}. OEM: ${candidate.codigo_original ?? "não informado"}\n   Peça: ${candidate.descricao ?? "não informado"}\n   Fabricante: ${candidate.fabricante ?? "não informado"}\n   Aplicações: ${candidate.aplicacao ?? "não informado"}\n   Fonte: ${candidate.fonte_url ?? "não informada"}\n   Confiança: ${candidate.fonte_confianca ?? "media"}\n   [Clique no botão Adicionar ao Catálogo para salvar esta peça]`;
     });
     return `Encontrei referência(s) públicas após consultar a base interna e acionar Tavily + Firecrawl:\n\n${lines.join("\n\n")}`;
   }

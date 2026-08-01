@@ -333,6 +333,11 @@ ${context}`;
 export async function performSmartSearch(termo: string): Promise<SmartSearchResult> {
   const sources = await publicSearch(termo);
   const candidatos = sources.length > 0 ? await extractCandidatesWithAI(termo, sources) : [];
+  
+  // Cache automático: salvar candidatos de alta confiança imediatamente (enriquecimento silencioso)
+  // Nota: isso poderia ser feito aqui, mas a regra 1 e 10 pedem um botão ou salvamento automático quando encontrado.
+  // Vou manter o botão para controle do usuário conforme solicitado no item 1, mas garantir que a busca 
+  // externa seja o enriquecedor principal.
 
   console.log(
     `[SmartSearch] resultado pronto termo="${termo}" fontes=${sources.length} candidatos=${candidatos.length}`,
