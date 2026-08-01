@@ -16,7 +16,7 @@ function AdminDashboard() {
     queryFn: async () => {
       // Get counts from the optimized view
       const { data: statsView, error: statsError } = await supabase
-        .from('admin_stats')
+        .from('admin_stats' as any)
         .select('*')
         .single();
       
@@ -56,15 +56,15 @@ function AdminDashboard() {
          return res && (res.total === 0 || res.encontrado === false);
       }).slice(0, 5);
 
-      const totalInternet = statsView.pesquisas_internet || 0;
-      const totalBanco = statsView.pesquisas_banco || 0;
+      const totalInternet = (statsView as any)?.pesquisas_internet || 0;
+      const totalBanco = (statsView as any)?.pesquisas_banco || 0;
       
       return {
-        totalPecas: statsView.total_pecas || 0,
-        totalBuscas: statsView.total_pesquisas || 0,
+        totalPecas: (statsView as any)?.total_pecas || 0,
+        totalBuscas: (statsView as any)?.total_pesquisas || 0,
         pesquisasBanco: totalBanco,
         pesquisasInternet: totalInternet,
-        pecasEnriquecidas: statsView.pecas_enriquecidas || 0,
+        pecasEnriquecidas: (statsView as any)?.pecas_enriquecidas || 0,
         economiaTavily: totalBanco * 0.05, // Estimate 0.05 credits saved per local search
         buscasSemResultado: failedSearches,
         ultimasImportacoes: ultimasImportacoes || []
