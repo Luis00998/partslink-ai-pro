@@ -170,6 +170,18 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
       resultados: rows,
       instrucao: "Use APENAS os dados internos abaixo. Não adicione códigos, marcas ou aplicações que não estejam nesta lista.",
     };
+    
+    // Registrar sucesso no banco interno no histórico
+    await context.supabase.from("historico_buscas").insert({
+      tipo: "rag",
+      termo: clean,
+      resultado: {
+        origem: "banco_interno",
+        total: rows.length,
+      } as any,
+      owner_id: context.userId,
+    });
+
     console.log(`[PartsAI][Chat] resultado enviado ao chat origem=banco_interno total=${rows.length}`);
     return result;
   }
