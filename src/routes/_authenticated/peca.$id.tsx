@@ -58,10 +58,15 @@ function PecaPage() {
               <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 <Field label="Código original" value={data.codigo_original} mono />
                 <Field label="Código interno" value={data.codigo_interno} mono />
+                <Field label="Código paralelo" value={data.codigo_paralelo} mono />
                 <Field label="Código de barras" value={data.codigo_barras} mono />
+                <Field label="Marca" value={data.marca} />
                 <Field label="Fabricante" value={data.fabricante} />
                 <Field label="Categoria" value={data.categoria} />
                 <Field label="Subcategoria" value={data.subcategoria} />
+                <Field label="Motores" value={data.motores_compativeis} />
+                <Field label="Chassis" value={data.chassis_compativeis} />
+                <Field label="Anos" value={data.ano_inicial ? `${data.ano_inicial} - ${data.ano_final ?? "Atual"}` : null} />
               </div>
 
               <div className="my-6 h-px bg-border" />
