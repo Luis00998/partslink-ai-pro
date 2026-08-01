@@ -51,11 +51,15 @@ type GatewayMessage = Record<string, unknown>;
 type PartRow = {
   codigo_original: string | null;
   codigo_interno: string | null;
+  codigo_paralelo: string | null;
   codigo_barras: string | null;
   descricao: string | null;
   aplicacao: string | null;
   fabricante: string | null;
+  marca: string | null;
   categoria: string | null;
+  motores_compativeis: string | null;
+  chassis_compativeis: string | null;
   preco_venda: number | null;
   estoque: number | null;
 };
@@ -131,16 +135,20 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
   console.log(`[PartsAI][Banco] consultado termo="${clean}"`);
   const { data: rowsData, error } = await context.supabase
     .from("pecas")
-    .select("codigo_original, codigo_interno, codigo_barras, descricao, aplicacao, fabricante, categoria, preco_venda, estoque")
+    .select("codigo_original, codigo_interno, codigo_paralelo, codigo_barras, descricao, aplicacao, fabricante, marca, categoria, motores_compativeis, chassis_compativeis, preco_venda, estoque")
     .or(
       [
         `codigo_original.ilike.${like}`,
         `codigo_interno.ilike.${like}`,
+        `codigo_paralelo.ilike.${like}`,
         `codigo_barras.ilike.${like}`,
         `descricao.ilike.${like}`,
         `aplicacao.ilike.${like}`,
         `fabricante.ilike.${like}`,
+        `marca.ilike.${like}`,
         `categoria.ilike.${like}`,
+        `motores_compativeis.ilike.${like}`,
+        `chassis_compativeis.ilike.${like}`,
       ].join(","),
     )
     .limit(15);
