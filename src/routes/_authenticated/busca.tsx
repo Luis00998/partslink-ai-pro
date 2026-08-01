@@ -223,8 +223,8 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
 
   const save = useMutation({
     mutationFn: async (c: SmartCandidate) => saveSmart({ data: { candidate: c, termo_original: termo } }),
-    onSuccess: ({ id }) => {
-      toast.success("Peça salva na base");
+    onSuccess: ({ status, id }) => {
+      toast.success(status === "updated" ? "Catálogo atualizado com sucesso" : "Peça adicionada ao catálogo com sucesso");
       onSaved(id);
     },
     onError: (e) => toast.error((e as Error).message),

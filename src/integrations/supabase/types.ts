@@ -62,6 +62,128 @@ export type Database = {
         }
         Relationships: []
       }
+      diagramas: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          imagem_url: string
+          modelo_veiculo: string | null
+          nome: string
+          owner_id: string
+          sistema: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url: string
+          modelo_veiculo?: string | null
+          nome: string
+          owner_id: string
+          sistema?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url?: string
+          modelo_veiculo?: string | null
+          nome?: string
+          owner_id?: string
+          sistema?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      diagramas_itens: {
+        Row: {
+          codigo_oem_referencia: string | null
+          created_at: string
+          descricao_referencia: string | null
+          diagrama_id: string
+          id: string
+          numero_referencia: number | null
+          peca_id: string | null
+          posicao_x: number
+          posicao_y: number
+          quantidade_referencia: number | null
+        }
+        Insert: {
+          codigo_oem_referencia?: string | null
+          created_at?: string
+          descricao_referencia?: string | null
+          diagrama_id: string
+          id?: string
+          numero_referencia?: number | null
+          peca_id?: string | null
+          posicao_x: number
+          posicao_y: number
+          quantidade_referencia?: number | null
+        }
+        Update: {
+          codigo_oem_referencia?: string | null
+          created_at?: string
+          descricao_referencia?: string | null
+          diagrama_id?: string
+          id?: string
+          numero_referencia?: number | null
+          peca_id?: string | null
+          posicao_x?: number
+          posicao_y?: number
+          quantidade_referencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagramas_itens_diagrama_id_fkey"
+            columns: ["diagrama_id"]
+            isOneToOne: false
+            referencedRelation: "diagramas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagramas_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favoritos: {
+        Row: {
+          created_at: string
+          id: string
+          lista_nome: string | null
+          peca_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lista_nome?: string | null
+          peca_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lista_nome?: string | null
+          peca_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favoritos_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           cidade: string | null
@@ -258,81 +380,138 @@ export type Database = {
       }
       pecas: {
         Row: {
+          ano_final: number | null
+          ano_inicial: number | null
           aplicacao: string | null
           categoria: string | null
+          chassis_compativeis: string | null
           codigo_barras: string | null
           codigo_interno: string | null
           codigo_original: string | null
+          codigo_paralelo: string | null
           created_at: string
           descricao: string
+          equivalencias: Json | null
           estoque: number
           estoque_minimo: number
+          etiquetas: string[] | null
           fabricante: string | null
+          ferramentas_necessarias: string | null
+          ficha_tecnica: Json | null
           fonte_confianca: string | null
+          fonte_nome: string | null
           fonte_url: string | null
           fornecedor_id: string | null
           id: string
           imagem_url: string | null
+          imagens_adicionais: Json | null
           importado_em: string | null
           importado_por: string | null
+          liquido_arrefecimento: string | null
           localizacao: string | null
+          marca: string | null
+          motores_compativeis: string | null
           observacoes: string | null
           owner_id: string
           preco_compra: number | null
           preco_venda: number | null
+          procedimentos_tecnicos: string | null
+          quantidade_oleo: string | null
+          quantidade_por_veiculo: string | null
           subcategoria: string | null
+          tempo_estimado: string | null
+          tipo_oleo: string | null
+          torque: string | null
           updated_at: string
         }
         Insert: {
+          ano_final?: number | null
+          ano_inicial?: number | null
           aplicacao?: string | null
           categoria?: string | null
+          chassis_compativeis?: string | null
           codigo_barras?: string | null
           codigo_interno?: string | null
           codigo_original?: string | null
+          codigo_paralelo?: string | null
           created_at?: string
           descricao: string
+          equivalencias?: Json | null
           estoque?: number
           estoque_minimo?: number
+          etiquetas?: string[] | null
           fabricante?: string | null
+          ferramentas_necessarias?: string | null
+          ficha_tecnica?: Json | null
           fonte_confianca?: string | null
+          fonte_nome?: string | null
           fonte_url?: string | null
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          imagens_adicionais?: Json | null
           importado_em?: string | null
           importado_por?: string | null
+          liquido_arrefecimento?: string | null
           localizacao?: string | null
+          marca?: string | null
+          motores_compativeis?: string | null
           observacoes?: string | null
           owner_id: string
           preco_compra?: number | null
           preco_venda?: number | null
+          procedimentos_tecnicos?: string | null
+          quantidade_oleo?: string | null
+          quantidade_por_veiculo?: string | null
           subcategoria?: string | null
+          tempo_estimado?: string | null
+          tipo_oleo?: string | null
+          torque?: string | null
           updated_at?: string
         }
         Update: {
+          ano_final?: number | null
+          ano_inicial?: number | null
           aplicacao?: string | null
           categoria?: string | null
+          chassis_compativeis?: string | null
           codigo_barras?: string | null
           codigo_interno?: string | null
           codigo_original?: string | null
+          codigo_paralelo?: string | null
           created_at?: string
           descricao?: string
+          equivalencias?: Json | null
           estoque?: number
           estoque_minimo?: number
+          etiquetas?: string[] | null
           fabricante?: string | null
+          ferramentas_necessarias?: string | null
+          ficha_tecnica?: Json | null
           fonte_confianca?: string | null
+          fonte_nome?: string | null
           fonte_url?: string | null
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          imagens_adicionais?: Json | null
           importado_em?: string | null
           importado_por?: string | null
+          liquido_arrefecimento?: string | null
           localizacao?: string | null
+          marca?: string | null
+          motores_compativeis?: string | null
           observacoes?: string | null
           owner_id?: string
           preco_compra?: number | null
           preco_venda?: number | null
+          procedimentos_tecnicos?: string | null
+          quantidade_oleo?: string | null
+          quantidade_por_veiculo?: string | null
           subcategoria?: string | null
+          tempo_estimado?: string | null
+          tipo_oleo?: string | null
+          torque?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -405,6 +584,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role:
