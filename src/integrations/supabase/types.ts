@@ -62,6 +62,289 @@ export type Database = {
         }
         Relationships: []
       }
+      diagrama_catalogo: {
+        Row: {
+          ano_veiculo: number | null
+          ativo: boolean | null
+          chassis_veiculo: string | null
+          created_at: string
+          descricao: string | null
+          fonte_url: string | null
+          hash_imagem: string | null
+          id: string
+          imagem_bucket: string | null
+          imagem_path: string | null
+          imagem_tamanho: number | null
+          imagem_tipo: string | null
+          imagem_url: string
+          importado_em: string | null
+          marca_veiculo: string
+          modelo_veiculo: string
+          motor_veiculo: string | null
+          nome_diagrama: string
+          origem_import: string | null
+          owner_id: string
+          sistema_id: string
+          total_itens: number | null
+          total_pecas_unicas: number | null
+          ultima_atualizacao: string | null
+          updated_at: string
+          versao_veiculo: string | null
+          vin_veiculo: string | null
+        }
+        Insert: {
+          ano_veiculo?: number | null
+          ativo?: boolean | null
+          chassis_veiculo?: string | null
+          created_at?: string
+          descricao?: string | null
+          fonte_url?: string | null
+          hash_imagem?: string | null
+          id?: string
+          imagem_bucket?: string | null
+          imagem_path?: string | null
+          imagem_tamanho?: number | null
+          imagem_tipo?: string | null
+          imagem_url: string
+          importado_em?: string | null
+          marca_veiculo: string
+          modelo_veiculo: string
+          motor_veiculo?: string | null
+          nome_diagrama: string
+          origem_import?: string | null
+          owner_id: string
+          sistema_id: string
+          total_itens?: number | null
+          total_pecas_unicas?: number | null
+          ultima_atualizacao?: string | null
+          updated_at?: string
+          versao_veiculo?: string | null
+          vin_veiculo?: string | null
+        }
+        Update: {
+          ano_veiculo?: number | null
+          ativo?: boolean | null
+          chassis_veiculo?: string | null
+          created_at?: string
+          descricao?: string | null
+          fonte_url?: string | null
+          hash_imagem?: string | null
+          id?: string
+          imagem_bucket?: string | null
+          imagem_path?: string | null
+          imagem_tamanho?: number | null
+          imagem_tipo?: string | null
+          imagem_url?: string
+          importado_em?: string | null
+          marca_veiculo?: string
+          modelo_veiculo?: string
+          motor_veiculo?: string | null
+          nome_diagrama?: string
+          origem_import?: string | null
+          owner_id?: string
+          sistema_id?: string
+          total_itens?: number | null
+          total_pecas_unicas?: number | null
+          ultima_atualizacao?: string | null
+          updated_at?: string
+          versao_veiculo?: string | null
+          vin_veiculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagrama_catalogo_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagrama_historico: {
+        Row: {
+          criado_em: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          descricao: string | null
+          diagrama_id: string
+          id: string
+          tipo_alteracao: string
+          usuario_id: string
+        }
+        Insert: {
+          criado_em?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          diagrama_id: string
+          id?: string
+          tipo_alteracao: string
+          usuario_id: string
+        }
+        Update: {
+          criado_em?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          descricao?: string | null
+          diagrama_id?: string
+          id?: string
+          tipo_alteracao?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagrama_historico_diagrama_id_fkey"
+            columns: ["diagrama_id"]
+            isOneToOne: false
+            referencedRelation: "diagrama_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagrama_item: {
+        Row: {
+          aplicacoes: string | null
+          atualizado_em: string
+          chassis_aplicaveis: string | null
+          codigo_interno_diagrama: string | null
+          codigo_oem_diagrama: string | null
+          criado_em: string
+          descricao_diagrama: string
+          diagrama_id: string
+          fabricante_diagrama: string | null
+          id: string
+          marca_diagrama: string | null
+          motores_aplicaveis: string | null
+          numero_referencia: number
+          observacoes: string | null
+          peca_id: string | null
+          posicao_montagem: string | null
+          posicao_x: number
+          posicao_y: number
+          quantidade: number
+          raio_hotspot: number | null
+          unidade: string | null
+        }
+        Insert: {
+          aplicacoes?: string | null
+          atualizado_em?: string
+          chassis_aplicaveis?: string | null
+          codigo_interno_diagrama?: string | null
+          codigo_oem_diagrama?: string | null
+          criado_em?: string
+          descricao_diagrama: string
+          diagrama_id: string
+          fabricante_diagrama?: string | null
+          id?: string
+          marca_diagrama?: string | null
+          motores_aplicaveis?: string | null
+          numero_referencia: number
+          observacoes?: string | null
+          peca_id?: string | null
+          posicao_montagem?: string | null
+          posicao_x: number
+          posicao_y: number
+          quantidade?: number
+          raio_hotspot?: number | null
+          unidade?: string | null
+        }
+        Update: {
+          aplicacoes?: string | null
+          atualizado_em?: string
+          chassis_aplicaveis?: string | null
+          codigo_interno_diagrama?: string | null
+          codigo_oem_diagrama?: string | null
+          criado_em?: string
+          descricao_diagrama?: string
+          diagrama_id?: string
+          fabricante_diagrama?: string | null
+          id?: string
+          marca_diagrama?: string | null
+          motores_aplicaveis?: string | null
+          numero_referencia?: number
+          observacoes?: string | null
+          peca_id?: string | null
+          posicao_montagem?: string | null
+          posicao_x?: number
+          posicao_y?: number
+          quantidade?: number
+          raio_hotspot?: number | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagrama_item_diagrama_id_fkey"
+            columns: ["diagrama_id"]
+            isOneToOne: false
+            referencedRelation: "diagrama_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagrama_item_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagrama_mapeamento_oem: {
+        Row: {
+          codigo_oem_banco: string
+          codigo_oem_diagrama: string
+          confianca: number | null
+          created_at: string
+          diagrama_id: string
+          id: string
+          item_numero: number
+          mapeado_automaticamente: boolean | null
+          mapeado_em: string | null
+          mapeado_por: string | null
+          peca_id: string | null
+        }
+        Insert: {
+          codigo_oem_banco: string
+          codigo_oem_diagrama: string
+          confianca?: number | null
+          created_at?: string
+          diagrama_id: string
+          id?: string
+          item_numero: number
+          mapeado_automaticamente?: boolean | null
+          mapeado_em?: string | null
+          mapeado_por?: string | null
+          peca_id?: string | null
+        }
+        Update: {
+          codigo_oem_banco?: string
+          codigo_oem_diagrama?: string
+          confianca?: number | null
+          created_at?: string
+          diagrama_id?: string
+          id?: string
+          item_numero?: number
+          mapeado_automaticamente?: boolean | null
+          mapeado_em?: string | null
+          mapeado_por?: string | null
+          peca_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagrama_mapeamento_oem_diagrama_id_fkey"
+            columns: ["diagrama_id"]
+            isOneToOne: false
+            referencedRelation: "diagrama_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagrama_mapeamento_oem_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagramas: {
         Row: {
           created_at: string
@@ -422,7 +705,10 @@ export type Database = {
           tempo_estimado: string | null
           tipo_oleo: string | null
           torque: string | null
+          total_diagramas: number | null
+          ultima_consulta_diagrama: string | null
           updated_at: string
+          usado_em_diagramas: boolean | null
         }
         Insert: {
           ano_final?: number | null
@@ -467,7 +753,10 @@ export type Database = {
           tempo_estimado?: string | null
           tipo_oleo?: string | null
           torque?: string | null
+          total_diagramas?: number | null
+          ultima_consulta_diagrama?: string | null
           updated_at?: string
+          usado_em_diagramas?: boolean | null
         }
         Update: {
           ano_final?: number | null
@@ -512,7 +801,10 @@ export type Database = {
           tempo_estimado?: string | null
           tipo_oleo?: string | null
           torque?: string | null
+          total_diagramas?: number | null
+          ultima_consulta_diagrama?: string | null
           updated_at?: string
+          usado_em_diagramas?: boolean | null
         }
         Relationships: [
           {
@@ -554,6 +846,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sistemas: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -577,12 +896,60 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_diagramas_veiculo: {
+        Args: {
+          p_ano?: number
+          p_marca: string
+          p_modelo: string
+          p_motor?: string
+        }
+        Returns: {
+          ano_veiculo: number
+          diagrama_id: string
+          imagem_url: string
+          marca_veiculo: string
+          modelo_veiculo: string
+          motor_veiculo: string
+          nome_diagrama: string
+          sistema_nome: string
+          total_itens: number
+        }[]
+      }
+      contar_oem_em_diagramas: {
+        Args: { p_codigo_oem: string }
+        Returns: {
+          lista_marcas: string[]
+          lista_modelos: string[]
+          total_diagramas: number
+          total_ocorrencias: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      obter_itens_diagrama_com_pecas: {
+        Args: { p_diagrama_id: string }
+        Returns: {
+          codigo_interno: string
+          codigo_oem_diagrama: string
+          codigo_original: string
+          descricao_diagrama: string
+          descricao_peca: string
+          equivalencias: Json
+          fabricante_diagrama: string
+          marca_diagrama: string
+          marca_peca: string
+          numero_referencia: number
+          peca_id: string
+          posicao_x: number
+          posicao_y: number
+          quantidade: number
+          raio_hotspot: number
+        }[]
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
