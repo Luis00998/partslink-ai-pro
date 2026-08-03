@@ -187,7 +187,7 @@ export interface BulkImportDiagramasResult {
   erros: Array<{
     linha: number;
     erro: string;
-    dados: unknown;
+    dados: string;
   }>;
 }
 
