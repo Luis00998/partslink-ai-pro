@@ -52,8 +52,8 @@ export const buscarDiagramasVeiculo = createServerFn({ method: "POST" })
       {
         p_marca: data.marca,
         p_modelo: data.modelo,
-        p_ano: data.ano || null,
-        p_motor: data.motor || null,
+        p_ano: data.ano ?? undefined,
+        p_motor: data.motor ?? undefined,
       },
     );
 
@@ -480,84 +480,5 @@ export const mapeamentoAutomaticoOEM = createServerFn({ method: "POST" })
 /**
  * Import em massa de diagramas
  */
-export const importarDiagramasEmMassa = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => BulkImportDiagramasSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    console.log(
-      `[Diagrams] importarDiagramasEmMassa: ${data.diagramas.length} diagramas, ${data.itens.length} itens`,
-    );
-
-    // Verificar permissão
-    const isAdmin = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-
-    if (!isAdmin.data) {
-      throw new Error("Apenas administradores podem importar diagramas");
-    }
-
-    const resultado: BulkImportDiagramasResult = {
-      total_processados: 0,
-      criados: 0,
-      atualizados: 0,
-      erros: [],
-    };
-
-    // Inserir diagramas
-    for (const diagrama of data.diagramas) {
-      try {
-        const { data: existing, error: errorCheck } = await context.supabase
-          .from("diagrama_catalogo")
-          .select("id")
-          .eq("marca_veiculo", diagrama.marca_veiculo)
-          .eq("modelo_veiculo", diagrama.modelo_veiculo)
-          .eq("sistema_id", diagrama.sistema_id)
-          .maybeSingle();
-
-        if (existing) {
-          // Atualizar
-          const { error: errorUpdate } = await context.supabase
-            .from("diagrama_catalogo")
-            .update({
-              nome_diagrama: diagrama.nome_diagrama,
-              descricao: diagrama.descricao,
-              imagem_url: diagrama.imagem_url,
-              ultima_atualizacao: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
-
-          if (errorUpdate) throw errorUpdate;
-          resultado.atualizados++;
-        } else {
-          // Criar
-          const { error: errorInsert } = await context.supabase
-            .from("diagrama_catalogo")
-            .insert({
-              ...diagrama,
-              owner_id: context.userId,
-            } as never);
-
-          if (errorInsert) throw errorInsert;
-          resultado.criados++;
-        }
-
-        resultado.total_processados++;
-      } catch (error) {
-        resultado.erros.push({
-          linha: resultado.total_processados,
-          erro: error instanceof Error ? error.message : "Erro desconhecido",
-          dados: diagrama,
-        });
-      }
-    }
-
-    console.log(
-      `[Diagrams] import concluído: ${resultado.criados} criados, ${resultado.atualizados} atualizados`,
-    );
-    return resultado;
-  });
-
-// Adicionar import que estava faltando
+// Adicionar import no topo
 import { z } from "zod";
