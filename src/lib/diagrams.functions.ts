@@ -105,7 +105,6 @@ export const criarDiagrama = createServerFn({ method: "POST" })
       .select("id")
       .eq("marca_veiculo", data.marca_veiculo)
       .eq("modelo_veiculo", data.modelo_veiculo)
-      .eq("ano_veiculo", data.ano_veiculo ?? null)
       .eq("sistema_id", data.sistema_id)
       .maybeSingle();
 
