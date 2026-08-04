@@ -3,7 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type { ChatInputData } from "./parts-ai.schemas";
 import type { SmartSearchResult } from "./smart-search.types";
 import { performSmartSearch } from "./smart-search.server";
-import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico } from "./catalog.server";
+import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico, type UnifiedPart } from "./catalog.server";
 import { persistirCandidatosConfiaveis } from "./pecas-upsert.server";
 
 const SYSTEM_PROMPT = `Você é o Parts AI, assistente técnico do PartsLink AI Pro — catálogo técnico de peças automotivas (linha pesada e leve).
