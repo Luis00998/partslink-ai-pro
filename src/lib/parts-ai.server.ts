@@ -50,22 +50,6 @@ type PartsAiContext = {
 
 type GatewayMessage = Record<string, unknown>;
 
-type PartRow = {
-  codigo_original: string | null;
-  codigo_interno: string | null;
-  codigo_paralelo: string | null;
-  codigo_barras: string | null;
-  descricao: string | null;
-  aplicacao: string | null;
-  fabricante: string | null;
-  marca: string | null;
-  categoria: string | null;
-  motores_compativeis: string | null;
-  chassis_compativeis: string | null;
-  preco_venda: number | null;
-  estoque: number | null;
-};
-
 function latestUserText(messages: ChatInputData["messages"]) {
   const latest = [...messages].reverse().find((message) => message.role === "user");
   return latest?.content.trim() ?? "";
