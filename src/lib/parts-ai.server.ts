@@ -221,7 +221,7 @@ function deterministicAnswer(result: Record<string, unknown>) {
 
   if (origem === "banco_interno" && resultados.length > 0) {
     const lines = resultados.map((item, index) => {
-      const row = item as PartRow;
+      const row = item as UnifiedPart;
       return `${index + 1}. Código original: ${row.codigo_original ?? "não informado"}\n   Descrição: ${row.descricao ?? "não informada"}\n   Fabricante: ${row.fabricante ?? "não informado"}\n   Aplicação: ${row.aplicacao ?? "não informada"}`;
     });
     return `Encontrei na base interna:\n\n${lines.join("\n\n")}`;
