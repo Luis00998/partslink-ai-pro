@@ -3,6 +3,8 @@ import type { Database } from "@/integrations/supabase/types";
 import type { ChatInputData } from "./parts-ai.schemas";
 import type { SmartSearchResult } from "./smart-search.types";
 import { performSmartSearch } from "./smart-search.server";
+import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico, type UnifiedPart } from "./catalog.server";
+import { persistirCandidatosConfiaveis } from "./pecas-upsert.server";
 
 const SYSTEM_PROMPT = `Você é o Parts AI, assistente técnico do PartsLink AI Pro — catálogo técnico de peças automotivas (linha pesada e leve).
 
@@ -47,22 +49,6 @@ type PartsAiContext = {
 };
 
 type GatewayMessage = Record<string, unknown>;
-
-type PartRow = {
-  codigo_original: string | null;
-  codigo_interno: string | null;
-  codigo_paralelo: string | null;
-  codigo_barras: string | null;
-  descricao: string | null;
-  aplicacao: string | null;
-  fabricante: string | null;
-  marca: string | null;
-  categoria: string | null;
-  motores_compativeis: string | null;
-  chassis_compativeis: string | null;
-  preco_venda: number | null;
-  estoque: number | null;
-};
 
 function latestUserText(messages: ChatInputData["messages"]) {
   const latest = [...messages].reverse().find((message) => message.role === "user");
@@ -130,35 +116,9 @@ async function logSmartHistory(context: PartsAiContext, termo: string, result: S
 
 async function buildSearchResultForTerm(termo: string, context: PartsAiContext) {
   const clean = termo.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
-  const like = `%${clean}%`;
 
   console.log(`[PartsAI][Banco] consultado termo="${clean}"`);
-  const { data: rowsData, error } = await context.supabase
-    .from("pecas")
-    .select("codigo_original, codigo_interno, codigo_paralelo, codigo_barras, descricao, aplicacao, fabricante, marca, categoria, motores_compativeis, chassis_compativeis, preco_venda, estoque")
-    .or(
-      [
-        `codigo_original.ilike.${like}`,
-        `codigo_interno.ilike.${like}`,
-        `codigo_paralelo.ilike.${like}`,
-        `codigo_barras.ilike.${like}`,
-        `descricao.ilike.${like}`,
-        `aplicacao.ilike.${like}`,
-        `fabricante.ilike.${like}`,
-        `marca.ilike.${like}`,
-        `categoria.ilike.${like}`,
-        `motores_compativeis.ilike.${like}`,
-        `chassis_compativeis.ilike.${like}`,
-      ].join(","),
-    )
-    .limit(15);
-
-  if (error) {
-    console.error(`[PartsAI][Banco] erro termo="${clean}": ${error.message}`);
-    return { encontrado: false, origem: "erro_banco", erro: error.message, resultados: [] };
-  }
-
-  const rows = (rowsData ?? []) as PartRow[];
+  const rows = await buscarPecasNoBanco(context.supabase, clean, 15);
   console.log(`[PartsAI][Banco] resultados=${rows.length} termo="${clean}"`);
 
   if (rows.length > 0) {
@@ -170,25 +130,44 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
       resultados: rows,
       instrucao: "Use APENAS os dados internos abaixo. Não adicione códigos, marcas ou aplicações que não estejam nesta lista.",
     };
-    
-    // Registrar sucesso no banco interno no histórico
-    await context.supabase.from("historico_buscas").insert({
-      tipo: "rag",
-      termo: clean,
-      resultado: {
-        origem: "banco_interno",
-        total: rows.length,
-      } as any,
-      owner_id: context.userId,
+
+    await registrarHistorico(context.supabase, context.userId, "rag", clean, {
+      origem: "banco_interno",
+      total: rows.length,
     });
 
     console.log(`[PartsAI][Chat] resultado enviado ao chat origem=banco_interno total=${rows.length}`);
     return result;
   }
 
+  // cache de pesquisas externas — responde pelo banco antes de gastar IA
+  const cached = await lerCacheBusca(context.supabase, clean);
+  if (cached && cached.candidatos.length > 0) {
+    await registrarHistorico(context.supabase, context.userId, "smart", clean, {
+      origem: "cache_supabase",
+      total: cached.candidatos.length,
+      fontes: cached.fontes_consultadas,
+    });
+    return {
+      encontrado: true,
+      origem: "cache_supabase",
+      total: cached.candidatos.length,
+      termo_pesquisado: clean,
+      fontes_consultadas: cached.fontes_consultadas,
+      resultados: cached.candidatos,
+      instrucao:
+        "Use APENAS os candidatos abaixo (já armazenados no banco). Mostre código OEM, nome da peça, fabricante, aplicações, fonte com link e nível de confiança.",
+    };
+  }
+
   console.log(`[PartsAI][Banco] sem resultados termo="${clean}" — acionando Pesquisa Inteligente`);
   const smart = await performSmartSearch(clean);
   await logSmartHistory(context, clean, smart);
+
+  if (smart.candidatos.length > 0) {
+    await gravarCacheBusca(context.supabase, clean, smart);
+    await persistirCandidatosConfiaveis(context.supabase, context.userId, smart.candidatos);
+  }
 
   console.log(
     `[PartsAI][SmartSearch] quantidade de resultados encontrados fontes=${smart.fontes_consultadas.length} candidatos=${smart.candidatos.length}`,
@@ -210,6 +189,7 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
   console.log(`[PartsAI][Chat] resultado enviado ao chat origem=${result.origem} total=${smart.candidatos.length}`);
   return result;
 }
+
 
 function parseToolArguments(raw: string) {
   try {
@@ -241,7 +221,7 @@ function deterministicAnswer(result: Record<string, unknown>) {
 
   if (origem === "banco_interno" && resultados.length > 0) {
     const lines = resultados.map((item, index) => {
-      const row = item as PartRow;
+      const row = item as UnifiedPart;
       return `${index + 1}. Código original: ${row.codigo_original ?? "não informado"}\n   Descrição: ${row.descricao ?? "não informada"}\n   Fabricante: ${row.fabricante ?? "não informado"}\n   Aplicação: ${row.aplicacao ?? "não informada"}`;
     });
     return `Encontrei na base interna:\n\n${lines.join("\n\n")}`;
