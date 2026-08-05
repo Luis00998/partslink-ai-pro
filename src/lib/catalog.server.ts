@@ -189,7 +189,13 @@ export async function obterRelacionamentos(supabase: Client, pecaId: string) {
   }>;
 
   // peças utilizadas nos mesmos diagramas (mesmo sistema mecânico)
-  let mesmoSistema: Array<Record<string, unknown>> = [];
+  let mesmoSistema: Array<{
+    numero_referencia: number;
+    descricao_diagrama: string;
+    codigo_oem_diagrama: string | null;
+    peca_id: string | null;
+    diagrama_id: string;
+  }> = [];
   if (diagramaRows.length > 0) {
     const { data } = await supabase
       .from("diagrama_item")
