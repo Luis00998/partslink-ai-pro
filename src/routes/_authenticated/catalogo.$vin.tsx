@@ -471,17 +471,30 @@ function ExplodedDiagram({
 // -----------------------------------------------------------------------------
 
 function PartDetailPanel({ node, onClose }: { node: CatNode; onClose: () => void }) {
-  const fields: Array<[string, string | null]> = [
-    ["Código Original", null],
-    ["Código Antigo", null],
-    ["Código Atual", null],
-    ["Descrição", null],
-    ["Aplicação", null],
-    ["Quantidade", null],
-    ["Observações", null],
-    ["Preço", null],
-    ["Disponibilidade", null],
-  ];
+  const relFn = useServerFn(obterRelacionamentosPeca);
+  const { data, isLoading } = useQuery({
+    queryKey: ["relacionamentos", node.pecaId],
+    enabled: Boolean(node.pecaId),
+    queryFn: () => relFn({ data: { peca_id: node.pecaId as string } }),
+  });
+
+  const peca = data?.peca;
+  const fields: Array<[string, string | number | null | undefined]> = peca
+    ? [
+        ["Código Original", peca.codigo_original],
+        ["Código Interno", peca.codigo_interno],
+        ["Código Paralelo", peca.codigo_paralelo],
+        ["Descrição", peca.descricao],
+        ["Marca / Fabricante", [peca.marca, peca.fabricante].filter(Boolean).join(" · ") || null],
+        ["Categoria", [peca.categoria, peca.subcategoria].filter(Boolean).join(" · ") || null],
+        ["Aplicação", peca.aplicacao],
+        ["Motores", peca.motores_compativeis],
+        ["Torque", peca.torque],
+        ["Estoque", peca.estoque],
+        ["Fonte", peca.fonte_nome ?? peca.fonte_url],
+      ]
+    : [];
+
   return (
     <aside className="flex w-96 shrink-0 flex-col border-l border-border bg-surface/40">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -495,33 +508,76 @@ function PartDetailPanel({ node, onClose }: { node: CatNode; onClose: () => void
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
-        <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-surface/60">
-          <div className="text-center text-muted-foreground">
-            <Package className="mx-auto h-10 w-10" strokeWidth={1.25} />
-            <div className="mt-2 text-[11px]">Imagem oficial não disponível</div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {fields.map(([label, value]) => (
-            <div key={label}>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-              <div className="mt-0.5 text-sm italic text-muted-foreground">Sem dados na base configurada</div>
+        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-surface/60">
+          {peca?.imagem_url ? (
+            <img src={peca.imagem_url} alt={peca.descricao} className="h-full w-full object-cover" />
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <Package className="mx-auto h-10 w-10" strokeWidth={1.25} />
+              <div className="mt-2 text-[11px]">Imagem oficial não disponível</div>
             </div>
-          ))}
+          )}
         </div>
 
-        <div>
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Equivalências</div>
-          <div className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
+        {!node.pecaId ? (
+          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-            Nenhuma equivalência cadastrada. O sistema não deduz equivalências entre marcas.
+            Este item do diagrama ainda não está vinculado a uma peça do catálogo.
           </div>
-        </div>
+        ) : isLoading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando ficha técnica…
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {fields.map(([label, value]) => (
+                <div key={label}>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+                  <div className="mt-0.5 text-sm">
+                    {value === null || value === undefined || value === ""
+                      ? <span className="italic text-muted-foreground">Sem dados na base configurada</span>
+                      : value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <RelList title="Equivalências" itens={(data?.equivalentes ?? []).map((e) => `${e.codigo_original ?? e.codigo_interno ?? ""} — ${e.descricao}`)} />
+            <RelList title="Peças do mesmo sistema" itens={(data?.mesmo_sistema ?? []).map((i) => `${i.numero_referencia}. ${i.descricao_diagrama}`)} />
+            <RelList title="Peças irmãs" itens={(data?.irmas ?? []).map((i) => i.descricao)} />
+            <RelList title="Veículos compatíveis" itens={(data?.veiculos_compativeis ?? []).map((v) => `${v.marca} ${v.modelo}${v.ano ? ` ${v.ano}` : ""}`)} />
+            <RelList title="Diagramas onde aparece" itens={(data?.diagramas ?? []).map((d) => `${d.nome_diagrama} (${d.marca_veiculo} ${d.modelo_veiculo})`)} />
+            <RelList title="Orçamentos" itens={(data?.orcamentos ?? []).map((o) => `Orçamento ${o.orcamentos?.numero ?? "—"} · ${o.quantidade} un`)} />
+            <RelList title="Histórico de manutenção" itens={(data?.historico_manutencao ?? []).map((h) => `${h.historico_manutencao?.data_servico ?? ""} — ${h.descricao}`)} />
+
+            <Link to="/peca/$id" params={{ id: node.pecaId }}>
+              <Button size="sm" variant="outline" className="w-full">Abrir ficha técnica completa →</Button>
+            </Link>
+          </>
+        )}
       </div>
     </aside>
   );
 }
+
+function RelList({ title, itens }: { title: string; itens: string[] }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{title}</div>
+      {itens.length === 0 ? (
+        <div className="mt-1 text-xs italic text-muted-foreground">Nenhum registro relacionado</div>
+      ) : (
+        <div className="mt-1.5 space-y-1">
+          {itens.slice(0, 8).map((t, i) => (
+            <div key={i} className="truncate rounded-md border border-border/60 bg-surface px-2 py-1 text-[11px]">{t}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // -----------------------------------------------------------------------------
 
