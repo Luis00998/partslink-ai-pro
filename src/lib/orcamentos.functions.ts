@@ -276,3 +276,59 @@ export const obterHistoricoVeiculo = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/**
+ * Checklist inteligente estilo Audatex a partir de UMA peça: serviços em que ela é
+ * usada, tempos de mão de obra, peças complementares obrigatórias/opcionais e fluidos.
+ */
+export const sugerirComplementosPeca = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ peca_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: peca, error } = await context.supabase
+      .from("pecas")
+      .select("id, descricao, categoria, subcategoria, torque, tipo_oleo, quantidade_oleo, liquido_arrefecimento, ferramentas_necessarias, tempo_estimado, quantidade_por_veiculo")
+      .eq("id", data.peca_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!peca) throw new Error("Peça não encontrada");
+
+    // serviços que já listam esta peça no checklist
+    const { data: vinculos } = await context.supabase
+      .from("servico_pecas_sugeridas")
+      .select("servico_id, obrigatorio, quantidade, servicos(id, nome, categoria, tempo_desmontagem, tempo_montagem, tempo_total, ferramentas_necessarias, procedimentos)")
+      .eq("peca_id", data.peca_id);
+
+    const servicoIds = [...new Set((vinculos ?? []).map((v) => v.servico_id))];
+
+    // demais itens exigidos pelos mesmos serviços (juntas, retentores, kits, fluidos…)
+    const { data: complementos } = servicoIds.length
+      ? await context.supabase
+          .from("servico_pecas_sugeridas")
+          .select("servico_id, descricao, codigo_oem, quantidade, obrigatorio, observacoes, pecas(id, codigo_original, descricao, marca, preco_venda, imagem_url)")
+          .in("servico_id", servicoIds)
+          .neq("peca_id", data.peca_id)
+          .order("obrigatorio", { ascending: false })
+      : { data: [] };
+
+    const servicos = (vinculos ?? []).map((v) => v.servicos).filter(Boolean);
+    const tempo_total_horas = servicos.reduce(
+      (acc, s) => acc + Number((s as { tempo_total?: number | null })?.tempo_total ?? 0),
+      0,
+    );
+
+    return {
+      peca,
+      servicos,
+      tempo_total_horas,
+      complementos: complementos ?? [],
+      fluidos: {
+        tipo_oleo: peca.tipo_oleo,
+        quantidade_oleo: peca.quantidade_oleo,
+        liquido_arrefecimento: peca.liquido_arrefecimento,
+      },
+      torque: peca.torque,
+      ferramentas: peca.ferramentas_necessarias,
+      tempo_estimado_peca: peca.tempo_estimado,
+    };
+  });
