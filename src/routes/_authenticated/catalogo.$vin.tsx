@@ -112,7 +112,7 @@ function WorkspacePage() {
           <div className="flex min-w-0 flex-1 overflow-hidden">
             {section === "catalogo" || section === "diagramas" ? (
               <CatalogView
-                vehicle={{ marca: vehicle?.fabricante ?? null, modelo: vehicle?.modelo ?? null, ano: vehicle?.ano ?? null, motor: vehicle?.motor ?? null }}
+                vehicle={{ marca: vehicle?.fabricante ?? null, modelo: vehicle?.modelo ?? null, ano: Number(vehicle?.ano) || null, motor: vehicle?.motor ?? null }}
                 selectedNode={selectedNode}
                 onSelectNode={setSelectedNode}
                 onSelectPart={(p) => setSelectedPart(p)}
