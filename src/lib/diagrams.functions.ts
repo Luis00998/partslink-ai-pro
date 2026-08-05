@@ -557,3 +557,17 @@ export const importarDiagramasEmMassa = createServerFn({ method: "POST" })
     );
     return resultado;
   });
+
+/**
+ * Lista os sistemas mecânicos oficiais (Motor, Freios, Suspensão, …) na ordem do catálogo.
+ */
+export const listarSistemas = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("sistemas")
+      .select("id, nome, descricao, icone, ordem")
+      .order("ordem", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });

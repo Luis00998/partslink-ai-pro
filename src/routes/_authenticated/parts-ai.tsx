@@ -9,16 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Send, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
+import { CandidateCard } from "@/components/candidate-card";
+import { useNavigate } from "@tanstack/react-router";
+import type { SmartCandidate } from "@/lib/smart-search.functions";
 
 export const Route = createFileRoute("/_authenticated/parts-ai")({
   head: () => ({ meta: [{ title: "Parts AI — PartsLink AI Pro" }] }),
   component: PartsAIPage,
 });
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; candidatos?: SmartCandidate[] };
 
 function PartsAIPage() {
   const chat = useServerFn(chatWithPartsAI);
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Olá! Sou o Parts AI. Posso te ajudar a identificar peças, sugerir equivalências ou responder dúvidas técnicas. Como posso ajudar?" },
   ]);
@@ -31,10 +35,11 @@ function PartsAIPage() {
     mutationFn: async (userText: string) => {
       const next: Msg[] = [...messages, { role: "user", content: userText }];
       setMessages(next);
-      const res = await chat({ data: { messages: next } });
-      return res.content;
+      const res = await chat({ data: { messages: next.map(({ role, content }) => ({ role, content })) } });
+      return res;
     },
-    onSuccess: (content) => setMessages((m) => [...m, { role: "assistant", content }]),
+    onSuccess: (res) =>
+      setMessages((m) => [...m, { role: "assistant", content: res.content, candidatos: res.candidatos }]),
     onError: (e) => toast.error((e as Error).message),
   });
 
@@ -54,8 +59,15 @@ function PartsAIPage() {
                     <Sparkles className="h-4 w-4 text-primary-foreground" />
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
+                <div className={`max-w-[80%] space-y-3 rounded-lg px-4 py-2.5 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
                   <div className="whitespace-pre-wrap">{m.content}</div>
+                  {m.candidatos?.map((c, ci) => (
+                    <CandidateCard
+                      key={`${c.codigo_original ?? c.descricao}-${ci}`}
+                      candidate={c}
+                      onSaved={(id) => navigate({ to: "/peca/$id", params: { id } })}
+                    />
+                  ))}
                 </div>
                 {m.role === "user" && (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent">

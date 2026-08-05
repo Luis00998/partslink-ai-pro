@@ -4,6 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { decodeVin } from "@/lib/vehicle-lookup.functions";
 import { chatWithPartsAI } from "@/lib/parts-ai.functions";
+import { listarSistemas, buscarDiagramasVeiculo, obterItensDiagrama, obterDiagrama } from "@/lib/diagrams.functions";
+import { obterRelacionamentosPeca } from "@/lib/catalog.functions";
+import { CandidateCard } from "@/components/candidate-card";
+import type { SmartCandidate } from "@/lib/smart-search.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,87 +28,7 @@ export const Route = createFileRoute("/_authenticated/catalogo/$vin")({
 // -----------------------------------------------------------------------------
 // Estrutura de catálogo (árvore). Sem peças reais — placeholders honestos.
 // -----------------------------------------------------------------------------
-type CatNode = { id: string; label: string; children?: CatNode[] };
-
-const CATALOG: CatNode[] = [
-  { id: "motor", label: "Motor", children: [
-    { id: "motor-bloco", label: "Bloco" },
-    { id: "motor-cabecote", label: "Cabeçote" },
-    { id: "motor-pistoes", label: "Pistões" },
-    { id: "motor-bielas", label: "Bielas" },
-    { id: "motor-virabrequim", label: "Virabrequim" },
-    { id: "motor-comando", label: "Comando de válvulas" },
-    { id: "motor-juntas", label: "Juntas e retentores" },
-  ]},
-  { id: "combustivel", label: "Sistema de combustível", children: [
-    { id: "comb-bomba", label: "Bomba" },
-    { id: "comb-injetores", label: "Injetores" },
-    { id: "comb-filtros", label: "Filtros" },
-    { id: "comb-tubulacoes", label: "Tubulações" },
-  ]},
-  { id: "ar", label: "Sistema de ar / admissão", children: [
-    { id: "ar-filtro", label: "Filtro de ar" },
-    { id: "ar-intercooler", label: "Intercooler" },
-    { id: "ar-coletor", label: "Coletor de admissão" },
-  ]},
-  { id: "arref", label: "Sistema de arrefecimento", children: [
-    { id: "arref-radiador", label: "Radiador" },
-    { id: "arref-bomba", label: "Bomba d'água" },
-    { id: "arref-mangueiras", label: "Mangueiras" },
-    { id: "arref-termostato", label: "Termostato" },
-  ]},
-  { id: "pneu", label: "Sistema pneumático", children: [
-    { id: "pneu-compressor", label: "Compressor" },
-    { id: "pneu-valvulas", label: "Válvulas" },
-    { id: "pneu-reservatorios", label: "Reservatórios" },
-  ]},
-  { id: "freios", label: "Freios", children: [
-    { id: "freios-discos", label: "Discos" },
-    { id: "freios-pastilhas", label: "Pastilhas / lonas" },
-    { id: "freios-camaras", label: "Câmaras de freio" },
-    { id: "freios-abs", label: "ABS / EBS" },
-  ]},
-  { id: "susp", label: "Suspensão", children: [
-    { id: "susp-diant", label: "Dianteira" },
-    { id: "susp-tras", label: "Traseira" },
-    { id: "susp-amort", label: "Amortecedores" },
-    { id: "susp-molas", label: "Molas / feixes" },
-  ]},
-  { id: "direcao", label: "Direção", children: [
-    { id: "dir-caixa", label: "Caixa de direção" },
-    { id: "dir-bomba", label: "Bomba hidráulica" },
-    { id: "dir-barras", label: "Barras e terminais" },
-  ]},
-  { id: "trans", label: "Transmissão", children: [
-    { id: "trans-embreagem", label: "Embreagem" },
-    { id: "trans-cambio", label: "Caixa de câmbio" },
-    { id: "trans-cardan", label: "Cardan" },
-    { id: "trans-diferencial", label: "Diferencial" },
-  ]},
-  { id: "cabine", label: "Cabine", children: [
-    { id: "cab-interior", label: "Interior" },
-    { id: "cab-vidros", label: "Vidros e fechaduras" },
-    { id: "cab-suspensao", label: "Suspensão da cabine" },
-  ]},
-  { id: "chassi", label: "Chassi", children: [
-    { id: "chassi-long", label: "Longarinas" },
-    { id: "chassi-quinta", label: "Quinta roda" },
-    { id: "chassi-suportes", label: "Suportes" },
-  ]},
-  { id: "eletrica", label: "Elétrica", children: [
-    { id: "el-bateria", label: "Baterias" },
-    { id: "el-alternador", label: "Alternador" },
-    { id: "el-motor-partida", label: "Motor de partida" },
-    { id: "el-chicote", label: "Chicote" },
-    { id: "el-sensores", label: "Sensores" },
-  ]},
-  { id: "filtros", label: "Filtros", children: [
-    { id: "filt-oleo", label: "Óleo" },
-    { id: "filt-comb", label: "Combustível" },
-    { id: "filt-ar", label: "Ar" },
-    { id: "filt-cabine", label: "Cabine" },
-  ]},
-];
+type CatNode = { id: string; label: string; sistemaId?: string; diagramaId?: string; pecaId?: string | null };
 
 const SECTIONS = [
   { id: "pesquisa", label: "Pesquisa", icon: Search },
@@ -188,6 +112,7 @@ function WorkspacePage() {
           <div className="flex min-w-0 flex-1 overflow-hidden">
             {section === "catalogo" || section === "diagramas" ? (
               <CatalogView
+                vehicle={{ marca: vehicle?.fabricante ?? null, modelo: vehicle?.modelo ?? null, ano: Number(vehicle?.ano) || null, motor: vehicle?.motor ?? null }}
                 selectedNode={selectedNode}
                 onSelectNode={setSelectedNode}
                 onSelectPart={(p) => setSelectedPart(p)}
@@ -300,14 +225,38 @@ function Spec({ label, value, mono }: { label: string; value?: string | null; mo
 // Catálogo em árvore + área central de diagrama
 // -----------------------------------------------------------------------------
 
+type VehicleRef = { marca: string | null; modelo: string | null; ano: number | null; motor: string | null };
+
 function CatalogView({
-  selectedNode, onSelectNode, onSelectPart,
+  vehicle, selectedNode, onSelectNode, onSelectPart,
 }: {
+  vehicle: VehicleRef;
   selectedNode: CatNode | null;
   onSelectNode: (n: CatNode | null) => void;
   onSelectPart: (p: CatNode) => void;
 }) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["motor"]));
+  const sistemasFn = useServerFn(listarSistemas);
+  const diagramasFn = useServerFn(buscarDiagramasVeiculo);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const { data: sistemas = [], isLoading: loadingSistemas } = useQuery({
+    queryKey: ["sistemas"],
+    queryFn: () => sistemasFn(),
+  });
+
+  const { data: diagramas = [], isLoading: loadingDiagramas } = useQuery({
+    queryKey: ["diagramas-veiculo", vehicle.marca, vehicle.modelo, vehicle.ano, vehicle.motor],
+    enabled: Boolean(vehicle.marca && vehicle.modelo),
+    queryFn: () =>
+      diagramasFn({
+        data: {
+          marca: vehicle.marca as string,
+          modelo: vehicle.modelo as string,
+          ...(vehicle.ano ? { ano: vehicle.ano } : {}),
+        },
+      }),
+  });
+
   const toggle = (id: string) =>
     setExpanded((prev) => {
       const n = new Set(prev);
@@ -317,38 +266,54 @@ function CatalogView({
 
   return (
     <>
-      {/* Tree */}
+      {/* Tree — sistemas reais do catálogo + diagramas do veículo */}
       <div className="flex w-72 shrink-0 flex-col border-r border-border bg-surface/30">
         <div className="border-b border-border px-4 py-3">
           <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Catálogo técnico</div>
           <div className="mt-0.5 text-sm">Sistemas e conjuntos</div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          {CATALOG.map((group) => {
-            const isOpen = expanded.has(group.id);
+          {loadingSistemas && (
+            <div className="flex items-center gap-2 px-2 py-3 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando sistemas…
+            </div>
+          )}
+          {sistemas.map((sistema) => {
+            const isOpen = expanded.has(sistema.id);
+            const doSistema = diagramas.filter((d) => d.sistema_nome === sistema.nome);
             return (
-              <div key={group.id} className="mb-0.5">
+              <div key={sistema.id} className="mb-0.5">
                 <button
-                  onClick={() => toggle(group.id)}
+                  onClick={() => toggle(sistema.id)}
                   className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface"
                 >
                   {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <span className="font-medium">{group.label}</span>
+                  <span className="flex-1 font-medium">{sistema.nome}</span>
+                  {doSistema.length > 0 && (
+                    <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">{doSistema.length}</span>
+                  )}
                 </button>
-                {isOpen && group.children && (
+                {isOpen && (
                   <div className="ml-4 border-l border-border/60 pl-2">
-                    {group.children.map((child) => (
-                      <button
-                        key={child.id}
-                        onClick={() => onSelectNode(child)}
-                        className={cn(
-                          "block w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition hover:bg-surface hover:text-foreground",
-                          selectedNode?.id === child.id && "bg-primary/10 text-foreground",
-                        )}
-                      >
-                        {child.label}
-                      </button>
-                    ))}
+                    {doSistema.length === 0 ? (
+                      <div className="px-2 py-1 text-[11px] italic text-muted-foreground">
+                        {loadingDiagramas ? "Carregando…" : "Nenhum diagrama cadastrado"}
+                      </div>
+                    ) : (
+                      doSistema.map((d) => (
+                        <button
+                          key={d.diagrama_id}
+                          onClick={() => onSelectNode({ id: d.diagrama_id, label: d.nome_diagrama, sistemaId: sistema.id, diagramaId: d.diagrama_id })}
+                          className={cn(
+                            "block w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition hover:bg-surface hover:text-foreground",
+                            selectedNode?.diagramaId === d.diagrama_id && "bg-primary/10 text-foreground",
+                          )}
+                        >
+                          {d.nome_diagrama}
+                          {d.total_itens ? <span className="ml-1 text-[10px]">({d.total_itens} itens)</span> : null}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -369,15 +334,24 @@ function CatalogView({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {!selectedNode ? (
+          {!selectedNode?.diagramaId ? (
             <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
               <LayoutGrid className="h-10 w-10 opacity-40" />
               <div className="mt-3 max-w-sm text-sm">
-                Abra um sistema no catálogo à esquerda para ver seus diagramas e a lista de peças numeradas.
+                Abra um sistema no catálogo à esquerda para ver seus diagramas explodidos e a lista de peças numeradas.
               </div>
+              {diagramas.length === 0 && !loadingDiagramas && (
+                <div className="mt-2 max-w-sm text-xs">
+                  Nenhum diagrama cadastrado para {vehicle.marca ?? "este veículo"} {vehicle.modelo ?? ""}. Importe os diagramas para exibir a explosão de peças.
+                </div>
+              )}
             </div>
           ) : (
-            <DiagramPlaceholder node={selectedNode} onSelectPart={onSelectPart} />
+            <ExplodedDiagram
+              diagramaId={selectedNode.diagramaId}
+              nome={selectedNode.label}
+              onSelectPart={onSelectPart}
+            />
           )}
         </div>
       </div>
@@ -385,33 +359,74 @@ function CatalogView({
   );
 }
 
-function DiagramPlaceholder({ node, onSelectPart }: { node: CatNode; onSelectPart: (p: CatNode) => void }) {
-  // Sem fonte de diagramas oficiais conectada. Mostramos placeholder honesto + lista numerada vazia.
-  const numbered = Array.from({ length: 8 }).map((_, i) => ({ id: `${node.id}-${i + 1}`, n: i + 1 }));
+function ExplodedDiagram({
+  diagramaId, nome, onSelectPart,
+}: {
+  diagramaId: string;
+  nome: string;
+  onSelectPart: (p: CatNode) => void;
+}) {
+  const itensFn = useServerFn(obterItensDiagrama);
+  const diagramaFn = useServerFn(obterDiagrama);
+
+  const { data: diagrama } = useQuery({
+    queryKey: ["diagrama", diagramaId],
+    queryFn: () => diagramaFn({ data: { id: diagramaId } }),
+  });
+
+  const { data: itens = [], isLoading } = useQuery({
+    queryKey: ["diagrama-itens", diagramaId],
+    queryFn: () => itensFn({ data: { diagramaId } }),
+  });
+
+  const abrir = (item: (typeof itens)[number]) =>
+    onSelectPart({
+      id: `${diagramaId}-${item.numero_referencia}`,
+      label: item.descricao_peca ?? item.descricao_diagrama,
+      diagramaId,
+      pecaId: item.peca_id ?? null,
+    });
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="rounded-lg border border-border bg-surface/40">
-        <div className="flex h-[420px] flex-col items-center justify-center gap-3 border-b border-border p-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning/10 text-warning">
-            <AlertCircle className="h-6 w-6" />
-          </div>
-          <div className="max-w-md text-sm text-muted-foreground">
-            <div className="font-medium text-warning">Diagrama oficial de <span className="text-foreground">{node.label}</span> não disponível.</div>
-            <div className="mt-1">
-              Nenhuma fonte de diagramas técnicos foi conectada. Conecte TecDoc, PartsLink24 ou o catálogo eletrônico
-              da montadora para exibir a explosão de peças numerada.
+        <div className="relative border-b border-border">
+          {diagrama?.imagem_url ? (
+            <div className="relative">
+              <img src={diagrama.imagem_url} alt={nome} className="max-h-[520px] w-full object-contain" />
+              {itens.map((item) => (
+                <button
+                  key={item.numero_referencia}
+                  onClick={() => abrir(item)}
+                  style={{ left: `${item.posicao_x}%`, top: `${item.posicao_y}%` }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary bg-background/90 px-1.5 text-[11px] font-semibold text-primary shadow-glow transition hover:scale-110"
+                  title={item.descricao_diagrama}
+                >
+                  {item.numero_referencia}
+                </button>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="flex h-[420px] flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning/10 text-warning">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+              <div className="max-w-md text-sm text-muted-foreground">
+                <div className="font-medium text-warning">Imagem do diagrama não disponível.</div>
+                <div className="mt-1">Os itens numerados abaixo vêm do catálogo interno.</div>
+              </div>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-4 gap-2 p-4 sm:grid-cols-8">
-          {numbered.map((it) => (
+          {itens.map((item) => (
             <button
-              key={it.id}
-              onClick={() => onSelectPart({ id: it.id, label: `${node.label} — item ${it.n}` })}
-              className="group flex aspect-square items-center justify-center rounded-md border border-dashed border-border bg-surface/60 text-sm font-semibold text-muted-foreground transition hover:border-primary/60 hover:text-primary"
-              title={`Item ${it.n}`}
+              key={item.numero_referencia}
+              onClick={() => abrir(item)}
+              className="group flex aspect-square items-center justify-center rounded-md border border-border bg-surface/60 text-sm font-semibold text-muted-foreground transition hover:border-primary/60 hover:text-primary"
+              title={item.descricao_diagrama}
             >
-              {it.n}
+              {item.numero_referencia}
             </button>
           ))}
         </div>
@@ -419,25 +434,35 @@ function DiagramPlaceholder({ node, onSelectPart }: { node: CatNode; onSelectPar
 
       <div className="rounded-lg border border-border bg-surface/40 p-4">
         <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Lista numerada</div>
+        {isLoading && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando itens…
+          </div>
+        )}
         <div className="mt-3 space-y-1.5">
-          {numbered.map((it) => (
+          {itens.map((item) => (
             <button
-              key={it.id}
-              onClick={() => onSelectPart({ id: it.id, label: `${node.label} — item ${it.n}` })}
+              key={item.numero_referencia}
+              onClick={() => abrir(item)}
               className="flex w-full items-center gap-3 rounded-md border border-border/60 bg-surface px-3 py-2 text-left text-xs transition hover:border-primary/40"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                {it.n}
+                {item.numero_referencia}
               </span>
-              <span className="flex-1 truncate text-muted-foreground">Item {it.n} — sem dados</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{item.descricao_peca ?? item.descricao_diagrama}</span>
+                <span className="block truncate font-mono text-[10px] text-muted-foreground">
+                  {item.codigo_original ?? item.codigo_oem_diagrama ?? "sem código"}
+                  {item.quantidade ? ` · qtd ${item.quantidade}` : ""}
+                </span>
+              </span>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           ))}
+          {!isLoading && itens.length === 0 && (
+            <div className="text-[11px] italic text-muted-foreground">Nenhum item cadastrado neste diagrama.</div>
+          )}
         </div>
-        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          Os itens exibem apenas a numeração de referência. Códigos, descrições, aplicações e equivalências só aparecem
-          quando um catálogo oficial estiver conectado.
-        </p>
       </div>
     </div>
   );
@@ -446,17 +471,30 @@ function DiagramPlaceholder({ node, onSelectPart }: { node: CatNode; onSelectPar
 // -----------------------------------------------------------------------------
 
 function PartDetailPanel({ node, onClose }: { node: CatNode; onClose: () => void }) {
-  const fields: Array<[string, string | null]> = [
-    ["Código Original", null],
-    ["Código Antigo", null],
-    ["Código Atual", null],
-    ["Descrição", null],
-    ["Aplicação", null],
-    ["Quantidade", null],
-    ["Observações", null],
-    ["Preço", null],
-    ["Disponibilidade", null],
-  ];
+  const relFn = useServerFn(obterRelacionamentosPeca);
+  const { data, isLoading } = useQuery({
+    queryKey: ["relacionamentos", node.pecaId],
+    enabled: Boolean(node.pecaId),
+    queryFn: () => relFn({ data: { peca_id: node.pecaId as string } }),
+  });
+
+  const peca = data?.peca;
+  const fields: Array<[string, string | number | null | undefined]> = peca
+    ? [
+        ["Código Original", peca.codigo_original],
+        ["Código Interno", peca.codigo_interno],
+        ["Código Paralelo", peca.codigo_paralelo],
+        ["Descrição", peca.descricao],
+        ["Marca / Fabricante", [peca.marca, peca.fabricante].filter(Boolean).join(" · ") || null],
+        ["Categoria", [peca.categoria, peca.subcategoria].filter(Boolean).join(" · ") || null],
+        ["Aplicação", peca.aplicacao],
+        ["Motores", peca.motores_compativeis],
+        ["Torque", peca.torque],
+        ["Estoque", peca.estoque],
+        ["Fonte", peca.fonte_nome ?? peca.fonte_url],
+      ]
+    : [];
+
   return (
     <aside className="flex w-96 shrink-0 flex-col border-l border-border bg-surface/40">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -470,33 +508,76 @@ function PartDetailPanel({ node, onClose }: { node: CatNode; onClose: () => void
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
-        <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-border bg-surface/60">
-          <div className="text-center text-muted-foreground">
-            <Package className="mx-auto h-10 w-10" strokeWidth={1.25} />
-            <div className="mt-2 text-[11px]">Imagem oficial não disponível</div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {fields.map(([label, value]) => (
-            <div key={label}>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-              <div className="mt-0.5 text-sm italic text-muted-foreground">Sem dados na base configurada</div>
+        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-surface/60">
+          {peca?.imagem_url ? (
+            <img src={peca.imagem_url} alt={peca.descricao} className="h-full w-full object-cover" />
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <Package className="mx-auto h-10 w-10" strokeWidth={1.25} />
+              <div className="mt-2 text-[11px]">Imagem oficial não disponível</div>
             </div>
-          ))}
+          )}
         </div>
 
-        <div>
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Equivalências</div>
-          <div className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
+        {!node.pecaId ? (
+          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-            Nenhuma equivalência cadastrada. O sistema não deduz equivalências entre marcas.
+            Este item do diagrama ainda não está vinculado a uma peça do catálogo.
           </div>
-        </div>
+        ) : isLoading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando ficha técnica…
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {fields.map(([label, value]) => (
+                <div key={label}>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+                  <div className="mt-0.5 text-sm">
+                    {value === null || value === undefined || value === ""
+                      ? <span className="italic text-muted-foreground">Sem dados na base configurada</span>
+                      : value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <RelList title="Equivalências" itens={(data?.equivalentes ?? []).map((e) => `${e.codigo_original ?? e.codigo_interno ?? ""} — ${e.descricao}`)} />
+            <RelList title="Peças do mesmo sistema" itens={(data?.mesmo_sistema ?? []).map((i) => `${i.numero_referencia}. ${i.descricao_diagrama}`)} />
+            <RelList title="Peças irmãs" itens={(data?.irmas ?? []).map((i) => i.descricao)} />
+            <RelList title="Veículos compatíveis" itens={(data?.veiculos_compativeis ?? []).map((v) => `${v.marca} ${v.modelo}${v.ano ? ` ${v.ano}` : ""}`)} />
+            <RelList title="Diagramas onde aparece" itens={(data?.diagramas ?? []).map((d) => `${d.nome_diagrama} (${d.marca_veiculo} ${d.modelo_veiculo})`)} />
+            <RelList title="Orçamentos" itens={(data?.orcamentos ?? []).map((o) => `Orçamento ${o.orcamentos?.numero ?? "—"} · ${o.quantidade} un`)} />
+            <RelList title="Histórico de manutenção" itens={(data?.historico_manutencao ?? []).map((h) => `${h.historico_manutencao?.data_servico ?? ""} — ${h.descricao}`)} />
+
+            <Link to="/peca/$id" params={{ id: node.pecaId }}>
+              <Button size="sm" variant="outline" className="w-full">Abrir ficha técnica completa →</Button>
+            </Link>
+          </>
+        )}
       </div>
     </aside>
   );
 }
+
+function RelList({ title, itens }: { title: string; itens: string[] }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{title}</div>
+      {itens.length === 0 ? (
+        <div className="mt-1 text-xs italic text-muted-foreground">Nenhum registro relacionado</div>
+      ) : (
+        <div className="mt-1.5 space-y-1">
+          {itens.slice(0, 8).map((t, i) => (
+            <div key={i} className="truncate rounded-md border border-border/60 bg-surface px-2 py-1 text-[11px]">{t}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // -----------------------------------------------------------------------------
 
@@ -538,7 +619,7 @@ function EmptyPanel({ icon: Icon, title, message }: { icon: React.ElementType; t
 // Parts AI — dock lateral direito, sempre disponível
 // -----------------------------------------------------------------------------
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; candidatos?: SmartCandidate[] };
 
 function PartsAIDock({
   context, onClose,
@@ -569,10 +650,14 @@ function PartsAIDock({
       const enriched = `[Contexto do workspace: ${contextLine} | VIN ${context.vin}]\n\n${userText}`;
       const next: Msg[] = [...messages, { role: "user", content: userText }];
       setMessages(next);
-      const res = await chat({ data: { messages: [...messages, { role: "user", content: enriched }] } });
-      return res.content;
+      const res = await chat({
+        data: {
+          messages: [...messages.map(({ role, content }) => ({ role, content })), { role: "user" as const, content: enriched }],
+        },
+      });
+      return res;
     },
-    onSuccess: (content) => setMessages((m) => [...m, { role: "assistant", content }]),
+    onSuccess: (res) => setMessages((m) => [...m, { role: "assistant", content: res.content, candidatos: res.candidatos }]),
     onError: (e) => toast.error((e as Error).message),
   });
 
@@ -606,10 +691,13 @@ function PartsAIDock({
               </div>
             )}
             <div className={cn(
-              "max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-relaxed",
+              "max-w-[85%] space-y-3 rounded-lg px-3 py-2 text-[13px] leading-relaxed",
               m.role === "user" ? "bg-primary text-primary-foreground" : "bg-surface",
             )}>
               <div className="whitespace-pre-wrap">{m.content}</div>
+              {m.candidatos?.map((c, ci) => (
+                <CandidateCard key={`${c.codigo_original ?? c.descricao}-${ci}`} candidate={c} />
+              ))}
             </div>
             {m.role === "user" && (
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">

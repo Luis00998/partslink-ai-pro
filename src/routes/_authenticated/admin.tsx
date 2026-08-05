@@ -56,16 +56,19 @@ function AdminDashboard() {
          return res && (res.total === 0 || res.encontrado === false);
       }).slice(0, 5);
 
-      const totalInternet = (statsView as any)?.pesquisas_internet || 0;
-      const totalBanco = (statsView as any)?.pesquisas_banco || 0;
-      
+      const view = statsView as any;
+      const totalBuscas = view?.total_buscas || 0;
+      const totalInternet = view?.buscas_smart || 0;
+      const totalBanco = Math.max(totalBuscas - totalInternet, 0);
+      const cacheHits = view?.cache_hits || 0;
+
       return {
-        totalPecas: (statsView as any)?.total_pecas || 0,
-        totalBuscas: (statsView as any)?.total_pesquisas || 0,
+        totalPecas: view?.total_pecas || 0,
+        totalBuscas,
         pesquisasBanco: totalBanco,
         pesquisasInternet: totalInternet,
-        pecasEnriquecidas: (statsView as any)?.pecas_enriquecidas || 0,
-        economiaTavily: totalBanco * 0.05, // Estimate 0.05 credits saved per local search
+        pecasEnriquecidas: view?.pecas_via_ia || 0,
+        economiaTavily: (totalBanco + cacheHits) * 0.05, // créditos poupados por resposta local/cache
         buscasSemResultado: failedSearches,
         ultimasImportacoes: ultimasImportacoes || []
       };

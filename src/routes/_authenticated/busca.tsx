@@ -10,11 +10,12 @@ import { Loader2, Search, AlertCircle, CheckCircle2, Camera, Upload, Barcode, Fi
 import { useServerFn } from "@tanstack/react-start";
 import { decodeVin, decodePlaca } from "@/lib/vehicle-lookup.functions";
 import { identificarPecaPorImagem } from "@/lib/image-search.functions";
-import { smartSearchPart, savePartFromSmartSearch, type SmartCandidate } from "@/lib/smart-search.functions";
+import { smartSearchPart } from "@/lib/smart-search.functions";
+import { buscarPecasCatalogo } from "@/lib/catalog.functions";
+import { CandidateCard } from "@/components/candidate-card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Sparkles, Save } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/busca")({
   head: () => ({ meta: [{ title: "Buscar peça — PartsLink AI Pro" }] }),
@@ -152,21 +153,18 @@ function VinSearch() {
   );
 }
 
-function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: string; fields: string[] }) {
+function CodeSearch({ tipo, placeholder }: { tipo: Tipo; placeholder: string; fields?: string[] }) {
   const navigate = useNavigate();
+  const buscar = useServerFn(buscarPecasCatalogo);
   const [term, setTerm] = useState("");
   const [lastTerm, setLastTerm] = useState("");
   const mut = useMutation({
     mutationFn: async (t: string) => {
-      const like = `%${t.replace(/[%_]/g, "")}%`;
-      const { data, error } = await supabase
-        .from("pecas")
-        .select("*")
-        .or(fields.map((f) => `${f}.ilike.${like}`).join(","))
-        .limit(50);
-      if (error) throw error;
-      await saveHistorico(tipo, t, { total: data?.length ?? 0 });
-      return data ?? [];
+      // Pesquisa unificada: OEM, interno, paralelo, descrição, marca, fabricante,
+      // categoria, aplicação, motores e chassis — tolera acento, caixa e digitação.
+      const { resultados } = await buscar({ data: { termo: t, limite: 50 } });
+      await saveHistorico(tipo, t, { total: resultados.length });
+      return resultados as unknown as Array<Record<string, unknown>>;
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -191,7 +189,7 @@ function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: st
         mut.data.length === 0 ? (
           <SmartSearchFallback termo={lastTerm} onSaved={(id) => navigate({ to: "/peca/$id", params: { id } })} />
         ) : (
-          <ResultList items={mut.data} onOpen={(id) => navigate({ to: "/peca/$id", params: { id } })} />
+          <ResultList items={mut.data as Array<Record<string, unknown>>} onOpen={(id) => navigate({ to: "/peca/$id", params: { id } })} />
         )
       )}
     </Panel>
@@ -200,9 +198,6 @@ function CodeSearch({ tipo, placeholder, fields }: { tipo: Tipo; placeholder: st
 
 function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: string) => void }) {
   const runSmart = useServerFn(smartSearchPart);
-  const saveSmart = useServerFn(savePartFromSmartSearch);
-  const navigate = useNavigate();
-  const [savingIdx, setSavingIdx] = useState<number | null>(null);
 
   const search = useMutation({
     mutationFn: async () => {
@@ -222,15 +217,6 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termo]);
 
-  const save = useMutation({
-    mutationFn: async (c: SmartCandidate) => saveSmart({ data: { candidate: c, termo_original: termo } }),
-    onSuccess: ({ status, id }) => {
-      toast.success(status === "updated" ? "Catálogo atualizado com sucesso" : "Peça adicionada ao catálogo com sucesso");
-      onSaved(id);
-    },
-    onError: (e) => toast.error((e as Error).message),
-    onSettled: () => setSavingIdx(null),
-  });
 
   return (
     <div className="mt-6 space-y-4">
@@ -268,58 +254,12 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
             {search.data.candidatos.length} referência(s) encontrada(s) em fontes públicas — a peça foi identificada externamente.
           </div>
           {search.data.candidatos.map((c, i) => (
-            <div key={i} className="rounded-lg border border-border bg-surface p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm">{c.codigo_original ?? "sem código OEM"}</span>
-                    <ConfiancaBadge nivel={c.fonte_confianca} />
-                  </div>
-                  <div className="mt-1 text-sm font-medium">{c.descricao}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {c.fabricante ?? "fabricante não informado"}
-                    {c.categoria ? ` · ${c.categoria}` : ""}
-                  </div>
-                  {c.aplicacao && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <span className="uppercase tracking-wide">Aplicações: </span>{c.aplicacao}
-                    </div>
-                  )}
-                  {c.justificativa && (
-                    <div className="mt-2 text-xs italic text-muted-foreground">{c.justificativa}</div>
-                  )}
-                  <a
-                    href={c.fonte_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-3 w-3" /> {c.fonte_nome}
-                  </a>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => { setSavingIdx(i); save.mutate(c); }}
-                  disabled={save.isPending}
-                >
-                  {savingIdx === i && save.isPending
-                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    : <Save className="mr-2 h-4 w-4" />}
-                  ➕ Adicionar ao Catálogo
-                </Button>
-              </div>
-            </div>
+            <CandidateCard key={`${c.codigo_original ?? c.descricao}-${i}`} candidate={c} termo={termo} onSaved={onSaved} />
           ))}
         </div>
       )}
     </div>
   );
-}
-
-function ConfiancaBadge({ nivel }: { nivel: "alta" | "media" | "baixa" }) {
-  const label = nivel === "alta" ? "Confiança alta" : nivel === "media" ? "Confiança média" : "Confiança baixa";
-  const variant = nivel === "alta" ? "default" : nivel === "media" ? "secondary" : "outline";
-  return <Badge variant={variant as never} className="text-[10px] uppercase tracking-wide">{label}</Badge>;
 }
 
 function ImageSearch() {

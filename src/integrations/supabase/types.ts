@@ -1285,7 +1285,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_stats: {
+        Row: {
+          buscas_smart: number | null
+          cache_hits: number | null
+          economia_creditos: number | null
+          pecas_aguardando_revisao: number | null
+          pecas_com_imagem: number | null
+          pecas_via_ia: number | null
+          termos_em_cache: number | null
+          total_buscas: number | null
+          total_categorias: number | null
+          total_clientes: number | null
+          total_diagramas: number | null
+          total_fabricantes: number | null
+          total_historicos: number | null
+          total_itens_diagrama: number | null
+          total_orcamentos: number | null
+          total_pecas: number | null
+          total_servicos: number | null
+          total_veiculos: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       buscar_diagramas_veiculo: {

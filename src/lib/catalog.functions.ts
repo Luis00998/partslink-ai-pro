@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PecaIdInput, UnifiedSearchInput } from "./catalog.schemas";
-import { buscarPecasNoBanco, registrarHistorico, type UnifiedPart } from "./catalog.server";
+import { buscarPecasNoBanco, obterRelacionamentos, registrarHistorico, type UnifiedPart } from "./catalog.server";
 
 export type { UnifiedPart } from "./catalog.server";
 
@@ -30,3 +30,10 @@ export const obterDiagramasDaPeca = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/** Relacionamentos automáticos: equivalentes, irmãs, mesmo sistema, veículos,
+ *  diagramas, orçamentos e histórico de manutenção da peça. */
+export const obterRelacionamentosPeca = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => PecaIdInput.parse(d))
+  .handler(async ({ data, context }) => obterRelacionamentos(context.supabase, data.peca_id));

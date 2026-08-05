@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { ChatInputData } from "./parts-ai.schemas";
-import type { SmartSearchResult } from "./smart-search.types";
+import type { SmartCandidate, SmartSearchResult } from "./smart-search.types";
 import { performSmartSearch } from "./smart-search.server";
 import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico, type UnifiedPart } from "./catalog.server";
 import { persistirCandidatosConfiaveis } from "./pecas-upsert.server";
@@ -114,7 +114,7 @@ async function logSmartHistory(context: PartsAiContext, termo: string, result: S
   if (error) console.error(`[PartsAI][Histórico] falha ao registrar Pesquisa Inteligente: ${error.message}`);
 }
 
-async function buildSearchResultForTerm(termo: string, context: PartsAiContext) {
+async function buildSearchResultForTerm(termo: string, context: PartsAiContext, coletados?: SmartCandidate[]) {
   const clean = termo.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
 
   console.log(`[PartsAI][Banco] consultado termo="${clean}"`);
@@ -148,6 +148,7 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
       total: cached.candidatos.length,
       fontes: cached.fontes_consultadas,
     });
+    coletados?.push(...cached.candidatos);
     return {
       encontrado: true,
       origem: "cache_supabase",
@@ -165,6 +166,7 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext) 
   await logSmartHistory(context, clean, smart);
 
   if (smart.candidatos.length > 0) {
+    coletados?.push(...smart.candidatos);
     await gravarCacheBusca(context.supabase, clean, smart);
     await persistirCandidatosConfiaveis(context.supabase, context.userId, smart.candidatos);
   }
@@ -234,6 +236,7 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
   const userText = latestUserText(data.messages);
   const forceSearch = looksTechnical(userText);
   const messages: GatewayMessage[] = [{ role: "system", content: SYSTEM_PROMPT }, ...data.messages];
+  const candidatos: SmartCandidate[] = [];
 
   for (let step = 0; step < 3; step++) {
     const json = await callGateway({
@@ -253,13 +256,13 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
     if (!toolCalls || toolCalls.length === 0) {
       if (forceSearch && step === 0 && userText.length >= 2) {
         console.warn("[PartsAI][Chat] modelo não chamou buscar_pecas; executando fluxo determinístico obrigatório");
-        const result = await buildSearchResultForTerm(userText, context);
+        const result = await buildSearchResultForTerm(userText, context, candidatos);
         const content = deterministicAnswer(result);
         console.log(`[PartsAI][Chat] resultado enviado ao chat origem=deterministico caracteres=${content.length}`);
-        return { content };
+        return { content, candidatos };
       }
       console.log(`[PartsAI][Chat] resultado enviado ao chat origem=modelo caracteres=${String(msg.content ?? "").length}`);
-      return { content: msg.content ?? "" };
+      return { content: msg.content ?? "", candidatos };
     }
 
     messages.push(msg);
@@ -268,7 +271,7 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
       const termo = parseToolArguments(call.function.arguments);
       const toolResult =
         call.function.name === "buscar_pecas" && termo.length >= 2
-          ? await buildSearchResultForTerm(termo, context)
+          ? await buildSearchResultForTerm(termo, context, candidatos)
           : { encontrado: false, erro: "Termo muito curto ou ferramenta desconhecida.", resultados: [] };
 
       messages.push({
@@ -281,5 +284,5 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
   }
 
   console.warn("[PartsAI][Chat] limite de tool-calling atingido sem resposta final");
-  return { content: "Não consegui concluir a consulta. Tente reformular a pergunta." };
+  return { content: "Não consegui concluir a consulta. Tente reformular a pergunta.", candidatos };
 }

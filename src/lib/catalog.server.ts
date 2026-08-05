@@ -105,3 +105,125 @@ export async function registrarHistorico(
   });
   if (error) console.error(`[Catalogo][Histórico] falha (${tipo}) termo="${termo}": ${error.message}`);
 }
+
+/** Extrai códigos citados no campo jsonb `equivalencias` de uma peça. */
+function codigosEquivalentes(equivalencias: unknown): string[] {
+  if (!Array.isArray(equivalencias)) return [];
+  const out: string[] = [];
+  for (const item of equivalencias) {
+    if (typeof item === "string") out.push(item);
+    else if (item && typeof item === "object") {
+      const obj = item as Record<string, unknown>;
+      for (const key of ["codigo", "code", "codigo_original", "oem", "referencia"]) {
+        if (typeof obj[key] === "string") out.push(obj[key] as string);
+      }
+    }
+  }
+  return [...new Set(out.map((c) => c.trim()).filter((c) => c.length > 1))];
+}
+
+/**
+ * Relacionamentos automáticos de uma peça — reutiliza apenas tabelas existentes:
+ * equivalentes, irmãs (mesma categoria), peças do mesmo sistema (via diagramas),
+ * veículos compatíveis, diagramas onde aparece, orçamentos e histórico de manutenção.
+ */
+export async function obterRelacionamentos(supabase: Client, pecaId: string) {
+  const { data: base, error } = await supabase
+    .from("pecas")
+    .select("*")
+    .eq("id", pecaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!base) throw new Error("Peça não encontrada");
+
+  const codigos = [
+    ...new Set(
+      [base.codigo_original, base.codigo_interno, base.codigo_paralelo, ...codigosEquivalentes(base.equivalencias)]
+        .filter((c): c is string => typeof c === "string" && c.trim().length > 1)
+        .map((c) => c.trim()),
+    ),
+  ];
+
+  const orFilter = codigos
+    .map((c) => `codigo_original.eq.${c},codigo_interno.eq.${c},codigo_paralelo.eq.${c}`)
+    .join(",");
+
+  const [equivalentes, irmas, diagramas, orcamentos, historico] = await Promise.all([
+    orFilter
+      ? supabase
+          .from("pecas")
+          .select("id, codigo_original, codigo_interno, codigo_paralelo, descricao, marca, fabricante, imagem_url")
+          .or(orFilter)
+          .neq("id", pecaId)
+          .limit(30)
+      : Promise.resolve({ data: [], error: null }),
+    base.categoria
+      ? supabase
+          .from("pecas")
+          .select("id, codigo_original, descricao, marca, fabricante, subcategoria, imagem_url")
+          .eq("categoria", base.categoria)
+          .neq("id", pecaId)
+          .limit(20)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.rpc("obter_diagramas_da_peca", { p_peca_id: pecaId }),
+    supabase
+      .from("orcamento_itens")
+      .select("id, quantidade, preco_unitario, created_at, orcamentos(id, numero, status, created_at)")
+      .eq("peca_id", pecaId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("historico_manutencao_itens")
+      .select("id, quantidade, descricao, historico_manutencao(id, data_servico, km, descricao, veiculo_id)")
+      .eq("peca_id", pecaId)
+      .limit(20),
+  ]);
+
+  const diagramaRows = (diagramas.data ?? []) as Array<{
+    diagrama_id: string;
+    nome_diagrama: string;
+    sistema_nome: string | null;
+    marca_veiculo: string;
+    modelo_veiculo: string;
+    ano_veiculo: number | null;
+  }>;
+
+  // peças utilizadas nos mesmos diagramas (mesmo sistema mecânico)
+  let mesmoSistema: Array<{
+    numero_referencia: number;
+    descricao_diagrama: string;
+    codigo_oem_diagrama: string | null;
+    peca_id: string | null;
+    diagrama_id: string;
+  }> = [];
+  if (diagramaRows.length > 0) {
+    const { data } = await supabase
+      .from("diagrama_item")
+      .select("numero_referencia, descricao_diagrama, codigo_oem_diagrama, peca_id, diagrama_id")
+      .in("diagrama_id", diagramaRows.map((d) => d.diagrama_id))
+      .neq("peca_id", pecaId)
+      .limit(60);
+    mesmoSistema = data ?? [];
+  }
+
+  const veiculosCompatíveis = [
+    ...new Map(
+      diagramaRows.map((d) => [
+        `${d.marca_veiculo}|${d.modelo_veiculo}|${d.ano_veiculo ?? ""}`,
+        { marca: d.marca_veiculo, modelo: d.modelo_veiculo, ano: d.ano_veiculo },
+      ]),
+    ).values(),
+  ];
+
+  return {
+    peca: base,
+    codigos_relacionados: codigos,
+    equivalentes: equivalentes.data ?? [],
+    irmas: irmas.data ?? [],
+    mesmo_sistema: mesmoSistema,
+    veiculos_compativeis: veiculosCompatíveis,
+    diagramas: diagramaRows,
+    orcamentos: orcamentos.data ?? [],
+    historico_manutencao: historico.data ?? [],
+  };
+}
