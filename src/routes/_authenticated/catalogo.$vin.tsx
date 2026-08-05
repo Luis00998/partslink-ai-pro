@@ -619,7 +619,7 @@ function EmptyPanel({ icon: Icon, title, message }: { icon: React.ElementType; t
 // Parts AI — dock lateral direito, sempre disponível
 // -----------------------------------------------------------------------------
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; candidatos?: SmartCandidate[] };
 
 function PartsAIDock({
   context, onClose,
@@ -650,10 +650,14 @@ function PartsAIDock({
       const enriched = `[Contexto do workspace: ${contextLine} | VIN ${context.vin}]\n\n${userText}`;
       const next: Msg[] = [...messages, { role: "user", content: userText }];
       setMessages(next);
-      const res = await chat({ data: { messages: [...messages, { role: "user", content: enriched }] } });
-      return res.content;
+      const res = await chat({
+        data: {
+          messages: [...messages.map(({ role, content }) => ({ role, content })), { role: "user" as const, content: enriched }],
+        },
+      });
+      return res;
     },
-    onSuccess: (content) => setMessages((m) => [...m, { role: "assistant", content }]),
+    onSuccess: (res) => setMessages((m) => [...m, { role: "assistant", content: res.content, candidatos: res.candidatos }]),
     onError: (e) => toast.error((e as Error).message),
   });
 
@@ -687,10 +691,13 @@ function PartsAIDock({
               </div>
             )}
             <div className={cn(
-              "max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-relaxed",
+              "max-w-[85%] space-y-3 rounded-lg px-3 py-2 text-[13px] leading-relaxed",
               m.role === "user" ? "bg-primary text-primary-foreground" : "bg-surface",
             )}>
               <div className="whitespace-pre-wrap">{m.content}</div>
+              {m.candidatos?.map((c, ci) => (
+                <CandidateCard key={`${c.codigo_original ?? c.descricao}-${ci}`} candidate={c} />
+              ))}
             </div>
             {m.role === "user" && (
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
