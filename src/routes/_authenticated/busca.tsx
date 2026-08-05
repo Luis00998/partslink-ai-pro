@@ -198,9 +198,6 @@ function CodeSearch({ tipo, placeholder }: { tipo: Tipo; placeholder: string; fi
 
 function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: string) => void }) {
   const runSmart = useServerFn(smartSearchPart);
-  const saveSmart = useServerFn(savePartFromSmartSearch);
-  const navigate = useNavigate();
-  const [savingIdx, setSavingIdx] = useState<number | null>(null);
 
   const search = useMutation({
     mutationFn: async () => {
@@ -220,15 +217,6 @@ function SmartSearchFallback({ termo, onSaved }: { termo: string; onSaved: (id: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termo]);
 
-  const save = useMutation({
-    mutationFn: async (c: SmartCandidate) => saveSmart({ data: { candidate: c, termo_original: termo } }),
-    onSuccess: ({ status, id }) => {
-      toast.success(status === "updated" ? "Catálogo atualizado com sucesso" : "Peça adicionada ao catálogo com sucesso");
-      onSaved(id);
-    },
-    onError: (e) => toast.error((e as Error).message),
-    onSettled: () => setSavingIdx(null),
-  });
 
   return (
     <div className="mt-6 space-y-4">
