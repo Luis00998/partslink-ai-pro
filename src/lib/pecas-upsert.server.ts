@@ -73,26 +73,48 @@ export async function upsertPecaFromCandidate(
     updated_at: new Date().toISOString(),
   };
 
+  let pecaId: string;
+  let status: "created" | "updated";
+
   if (existingId) {
     const { error } = await supabase.from("pecas").update(payload).eq("id", existingId);
     if (error) throw new Error(error.message);
-    return { id: existingId, status: "updated" as const };
+    pecaId = existingId;
+    status = "updated";
+  } else {
+    const { data: inserted, error } = await supabase.from("pecas").insert(payload).select("id").single();
+    if (error) throw new Error(error.message);
+    pecaId = inserted.id;
+    status = "created";
   }
 
-  const { data: inserted, error } = await supabase.from("pecas").insert(payload).select("id").single();
-  if (error) throw new Error(error.message);
-  return { id: inserted.id, status: "created" as const };
+  if (veiculoId) {
+    await vincularPecaAoVeiculo(supabase, userId, veiculoId, pecaId, {
+      codigo_original: c.codigo_original ?? null,
+      codigo_interno: c.codigo_interno ?? null,
+      codigo_paralelo: c.codigo_paralelo ?? null,
+      origem: "pesquisa_inteligente",
+      confidence: c.fonte_confianca ?? "media",
+    });
+  }
+
+  return { id: pecaId, status };
 }
 
 /** Persiste automaticamente candidatos confiáveis (banco cresce, IA é menos usada). */
-export async function persistirCandidatosConfiaveis(supabase: Client, userId: string, candidatos: SmartCandidate[]) {
+export async function persistirCandidatosConfiaveis(
+  supabase: Client,
+  userId: string,
+  candidatos: SmartCandidate[],
+  veiculoId?: string | null,
+) {
   const confiaveis = candidatos.filter(
     (c) => c.fonte_confianca === "alta" && (c.codigo_original || c.codigo_interno),
   );
   let salvos = 0;
   for (const candidato of confiaveis) {
     try {
-      await upsertPecaFromCandidate(supabase, userId, candidato);
+      await upsertPecaFromCandidate(supabase, userId, candidato, veiculoId);
       salvos += 1;
     } catch (e) {
       console.error(`[SmartSearch][AutoSave] falha: ${(e as Error).message}`);
