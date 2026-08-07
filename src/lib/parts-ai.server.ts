@@ -5,6 +5,7 @@ import type { SmartCandidate, SmartSearchResult } from "./smart-search.types";
 import { performSmartSearch } from "./smart-search.server";
 import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico, type UnifiedPart } from "./catalog.server";
 import { persistirCandidatosConfiaveis } from "./pecas-upsert.server";
+import { listarPecasDoVeiculo, resolverVeiculoPorVin } from "./vehicle.server";
 
 const SYSTEM_PROMPT = `Você é o Parts AI, assistente técnico do PartsLink AI Pro — catálogo técnico de peças automotivas (linha pesada e leve).
 
