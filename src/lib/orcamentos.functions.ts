@@ -88,7 +88,11 @@ export const criarServico = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Apenas administradores podem cadastrar serviços");
-    const { data: row, error } = await context.supabase.from("servicos").insert(data).select("*").single();
+    const { data: row, error } = await context.supabase
+      .from("servicos")
+      .insert(data)
+      .select("*")
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -130,8 +134,16 @@ export const obterOrcamento = createServerFn({ method: "POST" })
         .select("*, veiculos(*), clientes(nome, telefone, email)")
         .eq("id", data.id)
         .maybeSingle(),
-      context.supabase.from("orcamento_itens").select("*").eq("orcamento_id", data.id).order("created_at"),
-      context.supabase.from("orcamento_servicos").select("*").eq("orcamento_id", data.id).order("created_at"),
+      context.supabase
+        .from("orcamento_itens")
+        .select("*")
+        .eq("orcamento_id", data.id)
+        .order("created_at"),
+      context.supabase
+        .from("orcamento_servicos")
+        .select("*")
+        .eq("orcamento_id", data.id)
+        .order("created_at"),
     ]);
 
     if (orcamento.error) throw new Error(orcamento.error.message);
@@ -195,7 +207,11 @@ export const adicionarItemOrcamento = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("orcamento_itens")
-      .insert({ ...data, owner_id: context.userId, subtotal: data.quantidade * data.preco_unitario })
+      .insert({
+        ...data,
+        owner_id: context.userId,
+        subtotal: data.quantidade * data.preco_unitario,
+      })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
@@ -248,7 +264,11 @@ export const obterDadosPdfOrcamento = createServerFn({ method: "POST" })
         .maybeSingle(),
       context.supabase.from("orcamento_itens").select("*").eq("orcamento_id", data.orcamento_id),
       context.supabase.from("orcamento_servicos").select("*").eq("orcamento_id", data.orcamento_id),
-      context.supabase.from("profiles").select("nome, empresa, telefone").eq("id", context.userId).maybeSingle(),
+      context.supabase
+        .from("profiles")
+        .select("nome, empresa, telefone")
+        .eq("id", context.userId)
+        .maybeSingle(),
     ]);
 
     if (orcamento.error) throw new Error(orcamento.error.message);
@@ -288,7 +308,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: peca, error } = await context.supabase
       .from("pecas")
-      .select("id, descricao, categoria, subcategoria, torque, tipo_oleo, quantidade_oleo, liquido_arrefecimento, ferramentas_necessarias, tempo_estimado, quantidade_por_veiculo")
+      .select(
+        "id, descricao, categoria, subcategoria, torque, tipo_oleo, quantidade_oleo, liquido_arrefecimento, ferramentas_necessarias, tempo_estimado, quantidade_por_veiculo",
+      )
       .eq("id", data.peca_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -297,7 +319,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
     // serviços que já listam esta peça no checklist
     const { data: vinculos } = await context.supabase
       .from("servico_pecas_sugeridas")
-      .select("servico_id, obrigatorio, quantidade, servicos(id, nome, categoria, tempo_desmontagem, tempo_montagem, tempo_total, ferramentas_necessarias, procedimentos)")
+      .select(
+        "servico_id, obrigatorio, quantidade, servicos(id, nome, categoria, tempo_desmontagem, tempo_montagem, tempo_total, ferramentas_necessarias, procedimentos)",
+      )
       .eq("peca_id", data.peca_id);
 
     const servicoIds = [...new Set((vinculos ?? []).map((v) => v.servico_id))];
@@ -306,7 +330,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
     const { data: complementos } = servicoIds.length
       ? await context.supabase
           .from("servico_pecas_sugeridas")
-          .select("servico_id, descricao, codigo_oem, quantidade, obrigatorio, observacoes, pecas(id, codigo_original, descricao, marca, preco_venda, imagem_url)")
+          .select(
+            "servico_id, descricao, codigo_oem, quantidade, obrigatorio, observacoes, pecas(id, codigo_original, descricao, marca, preco_venda, imagem_url)",
+          )
           .in("servico_id", servicoIds)
           .neq("peca_id", data.peca_id)
           .order("obrigatorio", { ascending: false })

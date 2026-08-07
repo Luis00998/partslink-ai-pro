@@ -16,7 +16,9 @@ export const smartSearchPart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SearchInput.parse(d))
   .handler(async ({ data, context }): Promise<SmartSearchResult> => {
-    console.log(`[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`);
+    console.log(
+      `[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`,
+    );
 
     // 1) cache do banco — evita reconsultar IA/APIs externas
     const cached = await lerCacheBusca(context.supabase, data.termo);

@@ -3,7 +3,13 @@ import type { Database } from "@/integrations/supabase/types";
 import type { ChatInputData } from "./parts-ai.schemas";
 import type { SmartCandidate, SmartSearchResult } from "./smart-search.types";
 import { performSmartSearch } from "./smart-search.server";
-import { buscarPecasNoBanco, gravarCacheBusca, lerCacheBusca, registrarHistorico, type UnifiedPart } from "./catalog.server";
+import {
+  buscarPecasNoBanco,
+  gravarCacheBusca,
+  lerCacheBusca,
+  registrarHistorico,
+  type UnifiedPart,
+} from "./catalog.server";
 import { persistirCandidatosConfiaveis } from "./pecas-upsert.server";
 import { listarPecasDoVeiculo, resolverVeiculoPorVin } from "./vehicle.server";
 
@@ -36,7 +42,10 @@ const TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          termo: { type: "string", description: "Código, veículo ou palavra-chave a buscar (mínimo 2 caracteres)" },
+          termo: {
+            type: "string",
+            description: "Código, veículo ou palavra-chave a buscar (mínimo 2 caracteres)",
+          },
         },
         required: ["termo"],
       },
@@ -81,7 +90,11 @@ function looksTechnical(text: string) {
     "equivalencia",
   ];
 
-  return keywords.some((keyword) => normalized.includes(keyword)) || /[a-z]{1,4}[-\s]?\d{3,}/i.test(text) || /\d{5,}/.test(text);
+  return (
+    keywords.some((keyword) => normalized.includes(keyword)) ||
+    /[a-z]{1,4}[-\s]?\d{3,}/i.test(text) ||
+    /\d{5,}/.test(text)
+  );
 }
 
 async function callGateway(body: unknown) {
@@ -94,7 +107,8 @@ async function callGateway(body: unknown) {
   });
   if (!res.ok) {
     if (res.status === 429) throw new Error("Muitas requisições. Aguarde um instante.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+    if (res.status === 402)
+      throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
     throw new Error(`Erro AI: ${(await res.text()).slice(0, 500)}`);
   }
   return res.json();
@@ -112,7 +126,8 @@ async function logSmartHistory(context: PartsAiContext, termo: string, result: S
     owner_id: context.userId,
   });
 
-  if (error) console.error(`[PartsAI][Histórico] falha ao registrar Pesquisa Inteligente: ${error.message}`);
+  if (error)
+    console.error(`[PartsAI][Histórico] falha ao registrar Pesquisa Inteligente: ${error.message}`);
 }
 
 const VIN_REGEX = /\b[A-HJ-NPR-Z0-9]{17}\b/i;
@@ -140,8 +155,15 @@ async function buscarPorVin(vin: string, context: PartsAiContext) {
   };
 }
 
-async function buildSearchResultForTerm(termo: string, context: PartsAiContext, coletados?: SmartCandidate[]) {
-  const clean = termo.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
+async function buildSearchResultForTerm(
+  termo: string,
+  context: PartsAiContext,
+  coletados?: SmartCandidate[],
+) {
+  const clean = termo
+    .replace(/[%_,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const vinMatch = clean.match(VIN_REGEX);
   if (vinMatch) {
@@ -163,7 +185,8 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext, 
       total: rows.length,
       termo_pesquisado: clean,
       resultados: rows,
-      instrucao: "Use APENAS os dados internos abaixo. Não adicione códigos, marcas ou aplicações que não estejam nesta lista.",
+      instrucao:
+        "Use APENAS os dados internos abaixo. Não adicione códigos, marcas ou aplicações que não estejam nesta lista.",
     };
 
     await registrarHistorico(context.supabase, context.userId, "rag", clean, {
@@ -171,7 +194,9 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext, 
       total: rows.length,
     });
 
-    console.log(`[PartsAI][Chat] resultado enviado ao chat origem=banco_interno total=${rows.length}`);
+    console.log(
+      `[PartsAI][Chat] resultado enviado ao chat origem=banco_interno total=${rows.length}`,
+    );
     return result;
   }
 
@@ -223,10 +248,11 @@ async function buildSearchResultForTerm(termo: string, context: PartsAiContext, 
         : "Banco interno e fontes públicas sem candidatos confiáveis. Responda exatamente: 'Nenhuma referência pública encontrada.' e informe que a base interna também não retornou registros.",
   };
 
-  console.log(`[PartsAI][Chat] resultado enviado ao chat origem=${result.origem} total=${smart.candidatos.length}`);
+  console.log(
+    `[PartsAI][Chat] resultado enviado ao chat origem=${result.origem} total=${smart.candidatos.length}`,
+  );
   return result;
 }
-
 
 function parseToolArguments(raw: string) {
   try {
@@ -278,25 +304,36 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
       model: "google/gemini-3.6-flash",
       messages,
       tools: TOOLS,
-      tool_choice: forceSearch && step === 0 ? { type: "function", function: { name: "buscar_pecas" } } : "auto",
+      tool_choice:
+        forceSearch && step === 0
+          ? { type: "function", function: { name: "buscar_pecas" } }
+          : "auto",
     });
     const msg = json.choices?.[0]?.message;
     if (!msg) throw new Error("Resposta vazia do modelo.");
 
-    const toolCalls = msg.tool_calls as Array<{
-      id: string;
-      function: { name: string; arguments: string };
-    }> | undefined;
+    const toolCalls = msg.tool_calls as
+      | Array<{
+          id: string;
+          function: { name: string; arguments: string };
+        }>
+      | undefined;
 
     if (!toolCalls || toolCalls.length === 0) {
       if (forceSearch && step === 0 && userText.length >= 2) {
-        console.warn("[PartsAI][Chat] modelo não chamou buscar_pecas; executando fluxo determinístico obrigatório");
+        console.warn(
+          "[PartsAI][Chat] modelo não chamou buscar_pecas; executando fluxo determinístico obrigatório",
+        );
         const result = await buildSearchResultForTerm(userText, context, candidatos);
         const content = deterministicAnswer(result);
-        console.log(`[PartsAI][Chat] resultado enviado ao chat origem=deterministico caracteres=${content.length}`);
+        console.log(
+          `[PartsAI][Chat] resultado enviado ao chat origem=deterministico caracteres=${content.length}`,
+        );
         return { content, candidatos };
       }
-      console.log(`[PartsAI][Chat] resultado enviado ao chat origem=modelo caracteres=${String(msg.content ?? "").length}`);
+      console.log(
+        `[PartsAI][Chat] resultado enviado ao chat origem=modelo caracteres=${String(msg.content ?? "").length}`,
+      );
       return { content: msg.content ?? "", candidatos };
     }
 
@@ -307,7 +344,11 @@ export async function runPartsAIChat(data: ChatInputData, context: PartsAiContex
       const toolResult =
         call.function.name === "buscar_pecas" && termo.length >= 2
           ? await buildSearchResultForTerm(termo, context, candidatos)
-          : { encontrado: false, erro: "Termo muito curto ou ferramenta desconhecida.", resultados: [] };
+          : {
+              encontrado: false,
+              erro: "Termo muito curto ou ferramenta desconhecida.",
+              resultados: [],
+            };
 
       messages.push({
         role: "tool",

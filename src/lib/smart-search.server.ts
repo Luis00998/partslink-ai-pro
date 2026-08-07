@@ -48,7 +48,9 @@ function extractJsonObject(content: string): unknown {
 
 function normalizeSearchRows(json: unknown): PublicSource[] {
   const payload = json as {
-    data?: Array<Record<string, unknown>> | { web?: Array<Record<string, unknown>>; results?: Array<Record<string, unknown>> };
+    data?:
+      | Array<Record<string, unknown>>
+      | { web?: Array<Record<string, unknown>>; results?: Array<Record<string, unknown>> };
     web?: Array<Record<string, unknown>>;
     results?: Array<Record<string, unknown>>;
   };
@@ -68,7 +70,11 @@ function normalizeSearchRows(json: unknown): PublicSource[] {
   for (const row of rows) {
     const url = safeUrl(row.url);
     if (!url) continue;
-    const markdown = textValue(row.markdown) || textValue(row.raw_content) || textValue(row.content) || textValue(row.description);
+    const markdown =
+      textValue(row.markdown) ||
+      textValue(row.raw_content) ||
+      textValue(row.content) ||
+      textValue(row.description);
     sources.push({
       url,
       title: textValue(row.title),
@@ -101,7 +107,9 @@ export async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
     headers.Authorization = `Bearer ${fcKey}`;
   } else {
     if (!lovableKey) {
-      console.warn("[SmartSearch][Firecrawl] SKIPPED — LOVABLE_API_KEY ausente para conexão gateway");
+      console.warn(
+        "[SmartSearch][Firecrawl] SKIPPED — LOVABLE_API_KEY ausente para conexão gateway",
+      );
       return [];
     }
     endpoint = "https://connector-gateway.lovable.dev/firecrawl/v2/search";
@@ -110,20 +118,26 @@ export async function firecrawlSearch(termo: string): Promise<PublicSource[]> {
   }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação catálogo técnico`;
-  const res = await fetchWithTimeout(endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      query,
-      limit: 6,
-      lang: "pt",
-      scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
-    }),
-  }, 25000);
+  const res = await fetchWithTimeout(
+    endpoint,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query,
+        limit: 6,
+        lang: "pt",
+        scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
+      }),
+    },
+    25000,
+  );
 
   console.log(`[SmartSearch][Firecrawl] status=${res.status}`);
   if (!res.ok) {
-    console.error(`[SmartSearch][Firecrawl] ERROR ${res.status}: ${(await res.text()).slice(0, 500)}`);
+    console.error(
+      `[SmartSearch][Firecrawl] ERROR ${res.status}: ${(await res.text()).slice(0, 500)}`,
+    );
     return [];
   }
 
@@ -142,18 +156,22 @@ export async function tavilySearch(termo: string): Promise<PublicSource[]> {
   }
 
   const query = `${termo} peça automotiva OEM fabricante aplicação catálogo técnico`;
-  const res = await fetchWithTimeout("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: tavilyKey,
-      query,
-      search_depth: "advanced",
-      include_answer: false,
-      include_raw_content: true,
-      max_results: 6,
-    }),
-  }, 15000);
+  const res = await fetchWithTimeout(
+    "https://api.tavily.com/search",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query,
+        search_depth: "advanced",
+        include_answer: false,
+        include_raw_content: true,
+        max_results: 6,
+      }),
+    },
+    15000,
+  );
 
   console.log(`[SmartSearch][Tavily] status=${res.status}`);
   if (!res.ok) {
@@ -197,9 +215,14 @@ export async function publicSearch(termo: string): Promise<PublicSource[]> {
   return merged.slice(0, 8);
 }
 
-export async function extractCandidatesWithAI(termo: string, sources: PublicSource[]): Promise<SmartCandidate[]> {
+export async function extractCandidatesWithAI(
+  termo: string,
+  sources: PublicSource[],
+): Promise<SmartCandidate[]> {
   const key = process.env.LOVABLE_API_KEY;
-  console.log(`[SmartSearch][Extractor] iniciado termo="${termo}" fontes=${sources.length} hasLovableKey=${Boolean(key)}`);
+  console.log(
+    `[SmartSearch][Extractor] iniciado termo="${termo}" fontes=${sources.length} hasLovableKey=${Boolean(key)}`,
+  );
   if (!key) throw new Error("LOVABLE_API_KEY não configurada");
 
   const context = sources
@@ -263,18 +286,22 @@ Extraia candidatos das fontes abaixo:
 
 ${context}`;
 
-  const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
-    body: JSON.stringify({
-      model: "google/gemini-3.6-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  }, 45000);
+  const res = await fetchWithTimeout(
+    "https://ai.gateway.lovable.dev/v1/chat/completions",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
+      body: JSON.stringify({
+        model: "google/gemini-3.6-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    },
+    45000,
+  );
 
   console.log(`[SmartSearch][Extractor] status=${res.status}`);
   if (!res.ok) {
@@ -312,7 +339,9 @@ ${context}`;
         equivalencias: Array.isArray(candidate.equivalencias) ? candidate.equivalencias : [],
         fonte_url: fonteUrl,
         fonte_nome: candidate.fonte_nome ?? safeHost(fonteUrl),
-        fonte_confianca: (["alta", "media", "baixa"].includes(confidence) ? confidence : "media") as "alta" | "media" | "baixa",
+        fonte_confianca: (["alta", "media", "baixa"].includes(confidence)
+          ? confidence
+          : "media") as "alta" | "media" | "baixa",
         justificativa: candidate.justificativa ?? undefined,
         torque: candidate.torque ?? null,
         quantidade_por_veiculo: candidate.quantidade_por_veiculo ?? null,
@@ -333,9 +362,11 @@ ${context}`;
 export async function performSmartSearch(termo: string): Promise<SmartSearchResult> {
   const sources = await publicSearch(termo);
   const candidatos = sources.length > 0 ? await extractCandidatesWithAI(termo, sources) : [];
-  
+
   if (candidatos.length > 0) {
-    console.log(`[SmartSearch] Candidatos encontrados para "${termo}". Enriquecimento automático disponível via UI.`);
+    console.log(
+      `[SmartSearch] Candidatos encontrados para "${termo}". Enriquecimento automático disponível via UI.`,
+    );
   }
 
   console.log(

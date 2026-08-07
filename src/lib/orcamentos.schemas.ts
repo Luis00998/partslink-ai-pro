@@ -75,7 +75,10 @@ export const ServicoInput = z.object({
 export const ManutencaoInput = z.object({
   veiculo_id: z.string().uuid(),
   orcamento_id: z.string().uuid().nullable().optional(),
-  data_servico: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional(),
+  data_servico: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida")
+    .optional(),
   km: z.number().int().nonnegative().nullable().optional(),
   descricao: z.string().trim().min(1, "Descrição obrigatória").max(500),
   servicos_realizados: z.string().trim().max(8000).nullable().optional(),

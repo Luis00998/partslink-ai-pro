@@ -25,8 +25,7 @@ export type VehicleInfo = {
   error: string | null;
 };
 
-const clean = (v?: string | null) =>
-  v && v.trim() && v !== "Not Applicable" ? v.trim() : null;
+const clean = (v?: string | null) => (v && v.trim() && v !== "Not Applicable" ? v.trim() : null);
 
 function mapRow(row: VeiculoRow, source: string): VehicleInfo {
   return {
@@ -83,7 +82,7 @@ async function consultarApiVin(vin: string) {
     tracao: clean(r.DriveType),
     pais: clean(r.PlantCountry),
     serie: clean(r.Series),
-    apiError: r.ErrorCode && r.ErrorCode !== "0" ? r.ErrorText ?? null : null,
+    apiError: r.ErrorCode && r.ErrorCode !== "0" ? (r.ErrorText ?? null) : null,
   };
 }
 

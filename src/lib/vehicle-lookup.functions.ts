@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { listarPecasDoVeiculo, resolverVeiculoPorVin, vincularPecaAoVeiculo } from "./vehicle.server";
+import {
+  listarPecasDoVeiculo,
+  resolverVeiculoPorVin,
+  vincularPecaAoVeiculo,
+} from "./vehicle.server";
 
 const VinInput = z.object({ vin: z.string().trim().min(3).max(17) });
 
@@ -13,7 +17,9 @@ const VinInput = z.object({ vin: z.string().trim().min(3).max(17) });
 export const decodeVin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => VinInput.parse(d))
-  .handler(async ({ data, context }) => resolverVeiculoPorVin(context.supabase, data.vin, context.userId));
+  .handler(async ({ data, context }) =>
+    resolverVeiculoPorVin(context.supabase, data.vin, context.userId),
+  );
 
 const VeiculoIdInput = z.object({ veiculo_id: z.string().uuid() });
 
@@ -39,14 +45,20 @@ export const vincularPecaVeiculo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => VinculoInput.parse(d))
   .handler(async ({ data, context }) => {
-    const id = await vincularPecaAoVeiculo(context.supabase, context.userId, data.veiculo_id, data.peca_id, {
-      codigo_original: data.codigo_original ?? null,
-      codigo_interno: data.codigo_interno ?? null,
-      codigo_paralelo: data.codigo_paralelo ?? null,
-      observacoes: data.observacoes ?? null,
-      origem: data.origem ?? "manual",
-      confidence: data.confidence ?? "media",
-    });
+    const id = await vincularPecaAoVeiculo(
+      context.supabase,
+      context.userId,
+      data.veiculo_id,
+      data.peca_id,
+      {
+        codigo_original: data.codigo_original ?? null,
+        codigo_interno: data.codigo_interno ?? null,
+        codigo_paralelo: data.codigo_paralelo ?? null,
+        observacoes: data.observacoes ?? null,
+        origem: data.origem ?? "manual",
+        confidence: data.confidence ?? "media",
+      },
+    );
     return { id, ok: id !== null };
   });
 

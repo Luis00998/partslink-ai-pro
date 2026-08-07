@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PecaIdInput, UnifiedSearchInput } from "./catalog.schemas";
-import { buscarPecasNoBanco, obterRelacionamentos, registrarHistorico, type UnifiedPart } from "./catalog.server";
+import {
+  buscarPecasNoBanco,
+  obterRelacionamentos,
+  registrarHistorico,
+  type UnifiedPart,
+} from "./catalog.server";
 
 export type { UnifiedPart } from "./catalog.server";
 

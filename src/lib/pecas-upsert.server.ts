@@ -82,7 +82,11 @@ export async function upsertPecaFromCandidate(
     pecaId = existingId;
     status = "updated";
   } else {
-    const { data: inserted, error } = await supabase.from("pecas").insert(payload).select("id").single();
+    const { data: inserted, error } = await supabase
+      .from("pecas")
+      .insert(payload)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     pecaId = inserted.id;
     status = "created";
