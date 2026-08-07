@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { SmartCandidate } from "./smart-search.types";
+import { vincularPecaAoVeiculo } from "./vehicle.server";
 
 type Client = SupabaseClient<Database>;
 
@@ -8,8 +9,14 @@ type Client = SupabaseClient<Database>;
  * UPSERT de um candidato no catálogo, priorizando o código OEM e caindo
  * para o código interno. Usado tanto pelo botão "Adicionar ao Catálogo"
  * quanto pela persistência automática da Pesquisa Inteligente.
+ * Quando `veiculoId` é informado, cria também o relacionamento veículo ↔ peça.
  */
-export async function upsertPecaFromCandidate(supabase: Client, userId: string, c: SmartCandidate) {
+export async function upsertPecaFromCandidate(
+  supabase: Client,
+  userId: string,
+  c: SmartCandidate,
+  veiculoId?: string | null,
+) {
   let existingId: string | null = null;
 
   if (c.codigo_original) {
