@@ -41,7 +41,7 @@ export async function lerCacheBusca(supabase: Client, termo: string): Promise<Sm
   const chave = normalizarTermo(termo);
   const { data, error } = await supabase
     .from("busca_cache")
-    .select("id, resultado, hits, expires_at")
+    .select("id, resultado, hits, cache_hit, expires_at")
     .eq("termo_normalizado", chave)
     .maybeSingle();
 
@@ -58,12 +58,15 @@ export async function lerCacheBusca(supabase: Client, termo: string): Promise<Sm
 
   await supabase
     .from("busca_cache")
-    .update({ hits: (data.hits ?? 0) + 1 })
+    .update({ hits: (data.hits ?? 0) + 1, cache_hit: (data.cache_hit ?? 0) + 1 })
     .eq("id", data.id);
 
   console.log(`[Catalogo][Cache] HIT termo="${chave}" hits=${(data.hits ?? 0) + 1}`);
   return data.resultado as unknown as SmartSearchResult;
 }
+
+/** TTL padrão do cache (dias) — configurável por env, sem tocar no frontend. */
+const CACHE_TTL_DIAS = Number(process.env.BUSCA_CACHE_TTL_DIAS ?? 30) || 30;
 
 /** Grava (ou atualiza) o resultado de uma pesquisa externa no cache. */
 export async function gravarCacheBusca(
@@ -73,14 +76,20 @@ export async function gravarCacheBusca(
   tipo = "smart",
 ) {
   const chave = normalizarTermo(termo);
+  const confiancas = resultado.candidatos.map((c) => c.fonte_confianca);
+  const confianca = confiancas.includes("alta") ? "alta" : confiancas.includes("media") ? "media" : "baixa";
+
   const { error } = await supabase.from("busca_cache").upsert(
     {
       termo_normalizado: chave,
       termo_original: termo,
       tipo,
       resultado: resultado as never,
+      payload: resultado as never,
+      fonte: resultado.fontes_consultadas.map((f) => f.url).join(" | ").slice(0, 2000) || null,
+      confianca,
       hits: 0,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + CACHE_TTL_DIAS * 24 * 60 * 60 * 1000).toISOString(),
     },
     { onConflict: "termo_normalizado" },
   );
