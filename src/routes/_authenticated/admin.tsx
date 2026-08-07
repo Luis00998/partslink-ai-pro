@@ -32,9 +32,14 @@ function AdminDashboard() {
           pesquisasBanco: 0,
           pesquisasInternet: 0,
           pecasEnriquecidas: 0,
+          totalVeiculos: 0,
+          totalRelacionamentos: 0,
+          totalDiagramas: 0,
+          totalCache: 0,
+          taxaAcertoBanco: 0,
           economiaTavily: 0,
-          buscasSemResultado: [],
-          ultimasImportacoes: []
+          buscasSemResultado: [] as any[],
+          ultimasImportacoes: [] as any[]
         };
       }
 
