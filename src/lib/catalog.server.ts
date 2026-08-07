@@ -4,7 +4,8 @@ import type { SmartSearchResult } from "./smart-search.types";
 
 type Client = SupabaseClient<Database>;
 
-export type UnifiedPart = Database["public"]["Functions"]["buscar_pecas_unificado"]["Returns"][number];
+export type UnifiedPart =
+  Database["public"]["Functions"]["buscar_pecas_unificado"]["Returns"][number];
 
 /** Normaliza o termo do mesmo modo que a função SQL public.normalizar_texto. */
 export function normalizarTermo(termo: string) {
@@ -20,7 +21,11 @@ export function normalizarTermo(termo: string) {
  * Pesquisa unificada no catálogo (Supabase primeiro).
  * Tolera acentos, caixa alta, palavras fora de ordem e erros de digitação.
  */
-export async function buscarPecasNoBanco(supabase: Client, termo: string, limite = 30): Promise<UnifiedPart[]> {
+export async function buscarPecasNoBanco(
+  supabase: Client,
+  termo: string,
+  limite = 30,
+): Promise<UnifiedPart[]> {
   const { data, error } = await supabase.rpc("buscar_pecas_unificado", {
     p_termo: termo,
     p_limite: limite,
@@ -37,11 +42,14 @@ export async function buscarPecasNoBanco(supabase: Client, termo: string, limite
 }
 
 /** Lê o cache de pesquisas externas; devolve null quando ausente ou expirado. */
-export async function lerCacheBusca(supabase: Client, termo: string): Promise<SmartSearchResult | null> {
+export async function lerCacheBusca(
+  supabase: Client,
+  termo: string,
+): Promise<SmartSearchResult | null> {
   const chave = normalizarTermo(termo);
   const { data, error } = await supabase
     .from("busca_cache")
-    .select("id, resultado, hits, expires_at")
+    .select("id, resultado, hits, cache_hit, expires_at")
     .eq("termo_normalizado", chave)
     .maybeSingle();
 
@@ -58,12 +66,15 @@ export async function lerCacheBusca(supabase: Client, termo: string): Promise<Sm
 
   await supabase
     .from("busca_cache")
-    .update({ hits: (data.hits ?? 0) + 1 })
+    .update({ hits: (data.hits ?? 0) + 1, cache_hit: (data.cache_hit ?? 0) + 1 })
     .eq("id", data.id);
 
   console.log(`[Catalogo][Cache] HIT termo="${chave}" hits=${(data.hits ?? 0) + 1}`);
   return data.resultado as unknown as SmartSearchResult;
 }
+
+/** TTL padrão do cache (dias) — configurável por env, sem tocar no frontend. */
+const CACHE_TTL_DIAS = Number(process.env.BUSCA_CACHE_TTL_DIAS ?? 30) || 30;
 
 /** Grava (ou atualiza) o resultado de uma pesquisa externa no cache. */
 export async function gravarCacheBusca(
@@ -73,20 +84,37 @@ export async function gravarCacheBusca(
   tipo = "smart",
 ) {
   const chave = normalizarTermo(termo);
+  const confiancas = resultado.candidatos.map((c) => c.fonte_confianca);
+  const confianca = confiancas.includes("alta")
+    ? "alta"
+    : confiancas.includes("media")
+      ? "media"
+      : "baixa";
+
   const { error } = await supabase.from("busca_cache").upsert(
     {
       termo_normalizado: chave,
       termo_original: termo,
       tipo,
       resultado: resultado as never,
+      payload: resultado as never,
+      fonte:
+        resultado.fontes_consultadas
+          .map((f) => f.url)
+          .join(" | ")
+          .slice(0, 2000) || null,
+      confianca,
       hits: 0,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + CACHE_TTL_DIAS * 24 * 60 * 60 * 1000).toISOString(),
     },
     { onConflict: "termo_normalizado" },
   );
 
   if (error) console.error(`[Catalogo][Cache] erro gravação termo="${chave}": ${error.message}`);
-  else console.log(`[Catalogo][Cache] gravado termo="${chave}" candidatos=${resultado.candidatos.length}`);
+  else
+    console.log(
+      `[Catalogo][Cache] gravado termo="${chave}" candidatos=${resultado.candidatos.length}`,
+    );
 }
 
 /** Registra a busca no histórico do usuário (helper único, evita duplicidade). */
@@ -103,7 +131,8 @@ export async function registrarHistorico(
     resultado: resultado as never,
     owner_id: userId,
   });
-  if (error) console.error(`[Catalogo][Histórico] falha (${tipo}) termo="${termo}": ${error.message}`);
+  if (error)
+    console.error(`[Catalogo][Histórico] falha (${tipo}) termo="${termo}": ${error.message}`);
 }
 
 /** Extrai códigos citados no campo jsonb `equivalencias` de uma peça. */
@@ -138,7 +167,12 @@ export async function obterRelacionamentos(supabase: Client, pecaId: string) {
 
   const codigos = [
     ...new Set(
-      [base.codigo_original, base.codigo_interno, base.codigo_paralelo, ...codigosEquivalentes(base.equivalencias)]
+      [
+        base.codigo_original,
+        base.codigo_interno,
+        base.codigo_paralelo,
+        ...codigosEquivalentes(base.equivalencias),
+      ]
         .filter((c): c is string => typeof c === "string" && c.trim().length > 1)
         .map((c) => c.trim()),
     ),
@@ -152,7 +186,9 @@ export async function obterRelacionamentos(supabase: Client, pecaId: string) {
     orFilter
       ? supabase
           .from("pecas")
-          .select("id, codigo_original, codigo_interno, codigo_paralelo, descricao, marca, fabricante, imagem_url")
+          .select(
+            "id, codigo_original, codigo_interno, codigo_paralelo, descricao, marca, fabricante, imagem_url",
+          )
           .or(orFilter)
           .neq("id", pecaId)
           .limit(30)
@@ -168,13 +204,17 @@ export async function obterRelacionamentos(supabase: Client, pecaId: string) {
     supabase.rpc("obter_diagramas_da_peca", { p_peca_id: pecaId }),
     supabase
       .from("orcamento_itens")
-      .select("id, quantidade, preco_unitario, created_at, orcamentos(id, numero, status, created_at)")
+      .select(
+        "id, quantidade, preco_unitario, created_at, orcamentos(id, numero, status, created_at)",
+      )
       .eq("peca_id", pecaId)
       .order("created_at", { ascending: false })
       .limit(20),
     supabase
       .from("historico_manutencao_itens")
-      .select("id, quantidade, descricao, historico_manutencao(id, data_servico, km, descricao, veiculo_id)")
+      .select(
+        "id, quantidade, descricao, historico_manutencao(id, data_servico, km, descricao, veiculo_id)",
+      )
       .eq("peca_id", pecaId)
       .limit(20),
   ]);
@@ -200,7 +240,10 @@ export async function obterRelacionamentos(supabase: Client, pecaId: string) {
     const { data } = await supabase
       .from("diagrama_item")
       .select("numero_referencia, descricao_diagrama, codigo_oem_diagrama, peca_id, diagrama_id")
-      .in("diagrama_id", diagramaRows.map((d) => d.diagrama_id))
+      .in(
+        "diagrama_id",
+        diagramaRows.map((d) => d.diagrama_id),
+      )
       .neq("peca_id", pecaId)
       .limit(60);
     mesmoSistema = data ?? [];

@@ -105,7 +105,12 @@ export const importPecas = createServerFn({ method: "POST" })
         const { error } = await supabase.from("pecas").update(payload).eq("id", existingId);
         if (error) {
           summary.rejected++;
-          summary.results.push({ row: rowNum, action: "rejected", reason: error.message, codigo: key });
+          summary.results.push({
+            row: rowNum,
+            action: "rejected",
+            reason: error.message,
+            codigo: key,
+          });
         } else {
           summary.updated++;
           summary.results.push({ row: rowNum, action: "updated", codigo: key });
@@ -114,7 +119,12 @@ export const importPecas = createServerFn({ method: "POST" })
         const { error } = await supabase.from("pecas").insert(payload);
         if (error) {
           summary.rejected++;
-          summary.results.push({ row: rowNum, action: "rejected", reason: error.message, codigo: key });
+          summary.results.push({
+            row: rowNum,
+            action: "rejected",
+            reason: error.message,
+            codigo: key,
+          });
         } else {
           summary.inserted++;
           summary.results.push({ row: rowNum, action: "inserted", codigo: key });

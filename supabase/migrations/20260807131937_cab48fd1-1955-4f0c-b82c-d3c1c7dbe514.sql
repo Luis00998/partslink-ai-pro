@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS veiculos_vin_key ON public.veiculos (vin);

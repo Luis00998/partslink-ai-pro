@@ -1,54 +1,75 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  listarPecasDoVeiculo,
+  resolverVeiculoPorVin,
+  vincularPecaAoVeiculo,
+} from "./vehicle.server";
 
-const VinInput = z.object({ vin: z.string().min(3).max(17) });
+const VinInput = z.object({ vin: z.string().trim().min(3).max(17) });
 
 /**
- * NHTSA vPIC — API pública gratuita e oficial do governo dos EUA.
- * Cobre a maioria dos VINs mundiais (17 caracteres). Nem sempre traz dados
- * completos para veículos brasileiros — nesse caso retornamos "Informação
- * não encontrada" explicitamente.
+ * Fluxo oficial: tabela `veiculos` → API pública NHTSA vPIC → gravação
+ * permanente. O mesmo VIN nunca é consultado duas vezes na API externa e a
+ * chave/URL da API permanece exclusivamente no backend.
  */
 export const decodeVin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => VinInput.parse(d))
-  .handler(async ({ data }) => {
-    const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(data.vin)}?format=json`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("API indisponível");
-      const json = (await res.json()) as { Results: Array<Record<string, string>> };
-      const r = json.Results?.[0] ?? {};
-      const empty = (v?: string) => (v && v.trim() && v !== "Not Applicable" ? v : null);
-      return {
-        source: "NHTSA vPIC" as const,
-        vin: data.vin,
-        fabricante: empty(r.Make),
-        modelo: empty(r.Model),
-        ano: empty(r.ModelYear),
-        motor: empty(r.EngineModel) ?? empty(r.EngineConfiguration),
-        cilindrada: empty(r.DisplacementL),
-        potencia: empty(r.EngineHP),
-        combustivel: empty(r.FuelTypePrimary),
-        transmissao: empty(r.TransmissionStyle),
-        cabine: empty(r.BodyClass),
-        tracao: empty(r.DriveType),
-        pais: empty(r.PlantCountry),
-        serie: empty(r.Series),
-        error: r.ErrorCode && r.ErrorCode !== "0" ? r.ErrorText : null,
-      };
-    } catch (e) {
-      return { source: "NHTSA vPIC" as const, vin: data.vin, error: (e as Error).message };
-    }
+  .handler(async ({ data, context }) =>
+    resolverVeiculoPorVin(context.supabase, data.vin, context.userId),
+  );
+
+const VeiculoIdInput = z.object({ veiculo_id: z.string().uuid() });
+
+/** Peças já relacionadas ao veículo (resposta instantânea pelo banco). */
+export const obterPecasDoVeiculo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => VeiculoIdInput.parse(d))
+  .handler(async ({ data, context }) => listarPecasDoVeiculo(context.supabase, data.veiculo_id));
+
+const VinculoInput = z.object({
+  veiculo_id: z.string().uuid(),
+  peca_id: z.string().uuid(),
+  codigo_original: z.string().nullable().optional(),
+  codigo_interno: z.string().nullable().optional(),
+  codigo_paralelo: z.string().nullable().optional(),
+  observacoes: z.string().nullable().optional(),
+  origem: z.string().optional(),
+  confidence: z.enum(["alta", "media", "baixa"]).optional(),
+});
+
+/** Cria/atualiza o relacionamento veículo ↔ peça (UPSERT atômico). */
+export const vincularPecaVeiculo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => VinculoInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const id = await vincularPecaAoVeiculo(
+      context.supabase,
+      context.userId,
+      data.veiculo_id,
+      data.peca_id,
+      {
+        codigo_original: data.codigo_original ?? null,
+        codigo_interno: data.codigo_interno ?? null,
+        codigo_paralelo: data.codigo_paralelo ?? null,
+        observacoes: data.observacoes ?? null,
+        origem: data.origem ?? "manual",
+        confidence: data.confidence ?? "media",
+      },
+    );
+    return { id, ok: id !== null };
   });
 
-const PlacaInput = z.object({ placa: z.string().min(6).max(10) });
+const PlacaInput = z.object({ placa: z.string().trim().min(6).max(10) });
 
 /**
- * Consulta de placa brasileira: sem API pública oficial gratuita real.
- * Retornamos aviso claro em vez de dados inventados (conforme regra do projeto).
- * O usuário pode conectar uma API paga (Sinesp, API Carros, WDAPI2, etc.).
+ * Consulta de placa brasileira: sem API pública gratuita confiável.
+ * Retornamos aviso claro em vez de dados inventados (regra do projeto).
  */
 export const decodePlaca = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => PlacaInput.parse(d))
   .handler(async ({ data }) => {
     return {

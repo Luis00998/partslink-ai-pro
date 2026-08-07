@@ -16,7 +16,9 @@ export const smartSearchPart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SearchInput.parse(d))
   .handler(async ({ data, context }): Promise<SmartSearchResult> => {
-    console.log(`[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`);
+    console.log(
+      `[SmartSearch] handler start user=${context.userId} termo="${data.termo}" tipo=${data.tipo}`,
+    );
 
     // 1) cache do banco — evita reconsultar IA/APIs externas
     const cached = await lerCacheBusca(context.supabase, data.termo);
@@ -51,5 +53,19 @@ export const savePartFromSmartSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SaveInput.parse(d))
   .handler(async ({ data, context }) => {
-    return upsertPecaFromCandidate(context.supabase, context.userId, data.candidate as never);
+    const saved = await upsertPecaFromCandidate(
+      context.supabase,
+      context.userId,
+      data.candidate as never,
+      data.veiculo_id ?? null,
+    );
+    // mantém o cache alinhado ao catálogo — a próxima busca responde pelo banco
+    if (data.termo_original) {
+      await registrarHistorico(context.supabase, context.userId, "upsert", data.termo_original, {
+        origem: "adicionar_ao_catalogo",
+        peca_id: saved.id,
+        status: saved.status,
+      });
+    }
+    return saved;
   });

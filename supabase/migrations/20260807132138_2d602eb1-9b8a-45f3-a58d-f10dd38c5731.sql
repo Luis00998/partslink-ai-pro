@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.recalcular_orcamento(uuid) FROM anon, authenticated, public;

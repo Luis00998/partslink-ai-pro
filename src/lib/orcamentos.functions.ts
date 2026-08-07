@@ -14,6 +14,7 @@ import {
   VeiculoInput,
   VeiculoUpdateInput,
 } from "./orcamentos.schemas";
+import { vincularPecaAoVeiculo } from "./vehicle.server";
 
 // ===================== VEÍCULOS =====================
 
@@ -88,7 +89,11 @@ export const criarServico = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Apenas administradores podem cadastrar serviços");
-    const { data: row, error } = await context.supabase.from("servicos").insert(data).select("*").single();
+    const { data: row, error } = await context.supabase
+      .from("servicos")
+      .insert(data)
+      .select("*")
+      .single();
     if (error) throw new Error(error.message);
     return row;
   });
@@ -130,8 +135,16 @@ export const obterOrcamento = createServerFn({ method: "POST" })
         .select("*, veiculos(*), clientes(nome, telefone, email)")
         .eq("id", data.id)
         .maybeSingle(),
-      context.supabase.from("orcamento_itens").select("*").eq("orcamento_id", data.id).order("created_at"),
-      context.supabase.from("orcamento_servicos").select("*").eq("orcamento_id", data.id).order("created_at"),
+      context.supabase
+        .from("orcamento_itens")
+        .select("*")
+        .eq("orcamento_id", data.id)
+        .order("created_at"),
+      context.supabase
+        .from("orcamento_servicos")
+        .select("*")
+        .eq("orcamento_id", data.id)
+        .order("created_at"),
     ]);
 
     if (orcamento.error) throw new Error(orcamento.error.message);
@@ -195,7 +208,11 @@ export const adicionarItemOrcamento = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("orcamento_itens")
-      .insert({ ...data, owner_id: context.userId, subtotal: data.quantidade * data.preco_unitario })
+      .insert({
+        ...data,
+        owner_id: context.userId,
+        subtotal: data.quantidade * data.preco_unitario,
+      })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
@@ -248,7 +265,11 @@ export const obterDadosPdfOrcamento = createServerFn({ method: "POST" })
         .maybeSingle(),
       context.supabase.from("orcamento_itens").select("*").eq("orcamento_id", data.orcamento_id),
       context.supabase.from("orcamento_servicos").select("*").eq("orcamento_id", data.orcamento_id),
-      context.supabase.from("profiles").select("nome, empresa, telefone").eq("id", context.userId).maybeSingle(),
+      context.supabase
+        .from("profiles")
+        .select("nome, empresa, telefone")
+        .eq("id", context.userId)
+        .maybeSingle(),
     ]);
 
     if (orcamento.error) throw new Error(orcamento.error.message);
@@ -288,7 +309,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: peca, error } = await context.supabase
       .from("pecas")
-      .select("id, descricao, categoria, subcategoria, torque, tipo_oleo, quantidade_oleo, liquido_arrefecimento, ferramentas_necessarias, tempo_estimado, quantidade_por_veiculo")
+      .select(
+        "id, descricao, categoria, subcategoria, torque, tipo_oleo, quantidade_oleo, liquido_arrefecimento, ferramentas_necessarias, tempo_estimado, quantidade_por_veiculo",
+      )
       .eq("id", data.peca_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -297,7 +320,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
     // serviços que já listam esta peça no checklist
     const { data: vinculos } = await context.supabase
       .from("servico_pecas_sugeridas")
-      .select("servico_id, obrigatorio, quantidade, servicos(id, nome, categoria, tempo_desmontagem, tempo_montagem, tempo_total, ferramentas_necessarias, procedimentos)")
+      .select(
+        "servico_id, obrigatorio, quantidade, servicos(id, nome, categoria, tempo_desmontagem, tempo_montagem, tempo_total, ferramentas_necessarias, procedimentos)",
+      )
       .eq("peca_id", data.peca_id);
 
     const servicoIds = [...new Set((vinculos ?? []).map((v) => v.servico_id))];
@@ -306,7 +331,9 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
     const { data: complementos } = servicoIds.length
       ? await context.supabase
           .from("servico_pecas_sugeridas")
-          .select("servico_id, descricao, codigo_oem, quantidade, obrigatorio, observacoes, pecas(id, codigo_original, descricao, marca, preco_venda, imagem_url)")
+          .select(
+            "servico_id, descricao, codigo_oem, quantidade, obrigatorio, observacoes, pecas(id, codigo_original, descricao, marca, preco_venda, imagem_url)",
+          )
           .in("servico_id", servicoIds)
           .neq("peca_id", data.peca_id)
           .order("obrigatorio", { ascending: false })
@@ -332,4 +359,99 @@ export const sugerirComplementosPeca = createServerFn({ method: "POST" })
       ferramentas: peca.ferramentas_necessarias,
       tempo_estimado_peca: peca.tempo_estimado,
     };
+  });
+
+// ===================== APROVAÇÃO → HISTÓRICO AUTOMÁTICO =====================
+
+/**
+ * Aprova um orçamento e gera automaticamente o registro de histórico de
+ * manutenção do veículo (com os itens/peças e os serviços executados),
+ * criando também os relacionamentos veículo ↔ peça do catálogo.
+ * Reutiliza as tabelas existentes; nunca duplica o histórico do mesmo orçamento.
+ */
+export const aprovarOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        orcamento_id: z.string().uuid(),
+        data_servico: z.string().optional(),
+        km: z.number().int().nonnegative().optional(),
+        observacoes: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: orcamento, error } = await supabase
+      .from("orcamentos")
+      .select("*")
+      .eq("id", data.orcamento_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!orcamento) throw new Error("Orçamento não encontrado");
+    if (!orcamento.veiculo_id) throw new Error("Vincule um veículo ao orçamento antes de aprovar.");
+
+    const { data: existente } = await supabase
+      .from("historico_manutencao")
+      .select("id")
+      .eq("orcamento_id", orcamento.id)
+      .maybeSingle();
+
+    await supabase
+      .from("orcamentos")
+      .update({ status: "aprovado", updated_at: new Date().toISOString() })
+      .eq("id", orcamento.id);
+
+    if (existente) return { historico_id: existente.id, status: "existente" as const };
+
+    const [{ data: itens }, { data: servicos }] = await Promise.all([
+      supabase.from("orcamento_itens").select("*").eq("orcamento_id", orcamento.id),
+      supabase.from("orcamento_servicos").select("*").eq("orcamento_id", orcamento.id),
+    ]);
+
+    const { data: historico, error: histError } = await supabase
+      .from("historico_manutencao")
+      .insert({
+        owner_id: userId,
+        veiculo_id: orcamento.veiculo_id,
+        orcamento_id: orcamento.id,
+        data_servico: data.data_servico ?? new Date().toISOString().slice(0, 10),
+        km: data.km ?? null,
+        descricao: `Orçamento nº ${orcamento.numero} aprovado`,
+        servicos_realizados:
+          (servicos ?? []).map((s) => `${s.descricao} (${s.tempo_horas}h)`).join("; ") || null,
+        observacoes: data.observacoes ?? orcamento.observacoes ?? null,
+        valor_total: orcamento.total ?? 0,
+      })
+      .select("id")
+      .single();
+    if (histError) throw new Error(histError.message);
+
+    if ((itens ?? []).length > 0) {
+      const { error: itensError } = await supabase.from("historico_manutencao_itens").insert(
+        (itens ?? []).map((item) => ({
+          historico_id: historico.id,
+          owner_id: userId,
+          peca_id: item.peca_id ?? null,
+          codigo: item.codigo ?? null,
+          descricao: item.descricao,
+          quantidade: item.quantidade,
+        })),
+      );
+      if (itensError) console.error(`[Orcamento][Histórico] itens: ${itensError.message}`);
+
+      // auto-alimentação: peças usadas no veículo passam a ser relacionamento permanente
+      for (const item of itens ?? []) {
+        if (!item.peca_id) continue;
+        await vincularPecaAoVeiculo(supabase, userId, orcamento.veiculo_id, item.peca_id, {
+          codigo_original: item.codigo ?? null,
+          origem: "orcamento_aprovado",
+          confidence: "alta",
+        });
+      }
+    }
+
+    return { historico_id: historico.id, status: "criado" as const };
   });

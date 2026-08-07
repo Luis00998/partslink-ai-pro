@@ -47,15 +47,12 @@ export const buscarDiagramasVeiculo = createServerFn({ method: "POST" })
       `[Diagrams] buscarDiagramasVeiculo: ${data.marca} ${data.modelo} ano=${data.ano} motor=${data.motor}`,
     );
 
-    const { data: resultados, error } = await context.supabase.rpc(
-      "buscar_diagramas_veiculo",
-      {
-        p_marca: data.marca,
-        p_modelo: data.modelo,
-        p_ano: data.ano ?? undefined,
-        p_motor: data.motor ?? undefined,
-      },
-    );
+    const { data: resultados, error } = await context.supabase.rpc("buscar_diagramas_veiculo", {
+      p_marca: data.marca,
+      p_modelo: data.modelo,
+      p_ano: data.ano ?? undefined,
+      p_motor: data.motor ?? undefined,
+    });
 
     if (error) {
       console.error(`[Diagrams] erro ao buscar diagramas: ${error.message}`);
@@ -75,10 +72,9 @@ export const obterItensDiagrama = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     console.log(`[Diagrams] obterItensDiagrama: ${data.diagramaId}`);
 
-    const { data: itens, error } = await context.supabase.rpc(
-      "obter_itens_diagrama_com_pecas",
-      { p_diagrama_id: data.diagramaId },
-    );
+    const { data: itens, error } = await context.supabase.rpc("obter_itens_diagrama_com_pecas", {
+      p_diagrama_id: data.diagramaId,
+    });
 
     if (error) {
       console.error(`[Diagrams] erro ao obter itens: ${error.message}`);
@@ -194,7 +190,9 @@ export const criarItemDiagrama = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CreateDiagramaItemSchema.parse(d))
   .handler(async ({ data, context }) => {
-    console.log(`[Diagrams] criarItemDiagrama: diagrama=${data.diagrama_id} numero=${data.numero_referencia}`);
+    console.log(
+      `[Diagrams] criarItemDiagrama: diagrama=${data.diagrama_id} numero=${data.numero_referencia}`,
+    );
 
     // Verificar se é admin
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -311,10 +309,7 @@ export const deletarItemDiagrama = createServerFn({ method: "POST" })
       throw new Error("Apenas administradores podem deletar itens");
     }
 
-    const { error } = await context.supabase
-      .from("diagrama_item")
-      .delete()
-      .eq("id", data.itemId);
+    const { error } = await context.supabase.from("diagrama_item").delete().eq("id", data.itemId);
 
     if (error) throw new Error(`Erro ao deletar item: ${error.message}`);
 
@@ -344,17 +339,23 @@ export const buscarOEMEmDiagramas = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     console.log(`[Diagrams] buscarOEMEmDiagramas: ${data.codigoOEM}`);
 
-    const { data: resultado, error } = await context.supabase.rpc(
-      "contar_oem_em_diagramas",
-      { p_codigo_oem: data.codigoOEM },
-    );
+    const { data: resultado, error } = await context.supabase.rpc("contar_oem_em_diagramas", {
+      p_codigo_oem: data.codigoOEM,
+    });
 
     if (error) {
       console.error(`[Diagrams] erro ao buscar OEM: ${error.message}`);
       throw new Error(`Erro ao buscar OEM: ${error.message}`);
     }
 
-    return resultado[0] || { total_diagramas: 0, total_ocorrencias: 0, lista_marcas: [], lista_modelos: [] };
+    return (
+      resultado[0] || {
+        total_diagramas: 0,
+        total_ocorrencias: 0,
+        lista_marcas: [],
+        lista_modelos: [],
+      }
+    );
   });
 
 /**
@@ -472,7 +473,9 @@ export const mapeamentoAutomaticoOEM = createServerFn({ method: "POST" })
       }
     }
 
-    console.log(`[Diagrams] mapeamento concluído: ${resultado.mapeados}/${resultado.total_itens} mapeados`);
+    console.log(
+      `[Diagrams] mapeamento concluído: ${resultado.mapeados}/${resultado.total_itens} mapeados`,
+    );
     return resultado;
   });
 
@@ -531,12 +534,10 @@ export const importarDiagramasEmMassa = createServerFn({ method: "POST" })
           resultado.atualizados++;
         } else {
           // Criar
-          const { error: errorInsert } = await context.supabase
-            .from("diagrama_catalogo")
-            .insert({
-              ...diagrama,
-              owner_id: context.userId,
-            } as never);
+          const { error: errorInsert } = await context.supabase.from("diagrama_catalogo").insert({
+            ...diagrama,
+            owner_id: context.userId,
+          } as never);
 
           if (errorInsert) throw errorInsert;
           resultado.criados++;

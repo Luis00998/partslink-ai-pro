@@ -16,10 +16,14 @@ export type Database = {
     Tables: {
       busca_cache: {
         Row: {
+          cache_hit: number
+          confianca: string | null
           created_at: string
           expires_at: string
+          fonte: string | null
           hits: number
           id: string
+          payload: Json | null
           resultado: Json
           termo_normalizado: string
           termo_original: string
@@ -27,10 +31,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cache_hit?: number
+          confianca?: string | null
           created_at?: string
           expires_at?: string
+          fonte?: string | null
           hits?: number
           id?: string
+          payload?: Json | null
           resultado: Json
           termo_normalizado: string
           termo_original: string
@@ -38,10 +46,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cache_hit?: number
+          confianca?: string | null
           created_at?: string
           expires_at?: string
+          fonte?: string | null
           hits?: number
           id?: string
+          payload?: Json | null
           resultado?: Json
           termo_normalizado?: string
           termo_original?: string
@@ -1221,54 +1233,150 @@ export type Database = {
         }
         Relationships: []
       }
+      veiculo_pecas: {
+        Row: {
+          codigo_interno: string | null
+          codigo_original: string | null
+          codigo_paralelo: string | null
+          confidence: string
+          created_at: string
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          origem: string
+          peca_id: string
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          codigo_interno?: string | null
+          codigo_original?: string | null
+          codigo_paralelo?: string | null
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: string
+          peca_id: string
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          codigo_interno?: string | null
+          codigo_original?: string | null
+          codigo_paralelo?: string | null
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: string
+          peca_id?: string
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculo_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculo_pecas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       veiculos: {
         Row: {
           ano: number | null
+          cabine: string | null
+          cambio: string | null
           chassis: string | null
+          cilindrada: string | null
           cliente_id: string | null
+          combustivel: string | null
+          confianca: string
           created_at: string
+          fabricante: string | null
+          fonte: string | null
           id: string
           km_atual: number | null
-          marca: string
-          modelo: string
+          marca: string | null
+          modelo: string | null
           motor: string | null
           observacoes: string | null
-          owner_id: string
+          owner_id: string | null
+          pais: string | null
           placa: string | null
+          potencia: string | null
+          serie: string | null
+          tracao: string | null
+          ultimo_acesso: string
           updated_at: string
           versao: string | null
           vin: string | null
         }
         Insert: {
           ano?: number | null
+          cabine?: string | null
+          cambio?: string | null
           chassis?: string | null
+          cilindrada?: string | null
           cliente_id?: string | null
+          combustivel?: string | null
+          confianca?: string
           created_at?: string
+          fabricante?: string | null
+          fonte?: string | null
           id?: string
           km_atual?: number | null
-          marca: string
-          modelo: string
+          marca?: string | null
+          modelo?: string | null
           motor?: string | null
           observacoes?: string | null
-          owner_id: string
+          owner_id?: string | null
+          pais?: string | null
           placa?: string | null
+          potencia?: string | null
+          serie?: string | null
+          tracao?: string | null
+          ultimo_acesso?: string
           updated_at?: string
           versao?: string | null
           vin?: string | null
         }
         Update: {
           ano?: number | null
+          cabine?: string | null
+          cambio?: string | null
           chassis?: string | null
+          cilindrada?: string | null
           cliente_id?: string | null
+          combustivel?: string | null
+          confianca?: string
           created_at?: string
+          fabricante?: string | null
+          fonte?: string | null
           id?: string
           km_atual?: number | null
-          marca?: string
-          modelo?: string
+          marca?: string | null
+          modelo?: string | null
           motor?: string | null
           observacoes?: string | null
-          owner_id?: string
+          owner_id?: string | null
+          pais?: string | null
           placa?: string | null
+          potencia?: string | null
+          serie?: string | null
+          tracao?: string | null
+          ultimo_acesso?: string
           updated_at?: string
           versao?: string | null
           vin?: string | null
@@ -1287,23 +1395,21 @@ export type Database = {
     Views: {
       admin_stats: {
         Row: {
-          buscas_smart: number | null
+          buscas_externas: number | null
+          buscas_locais: number | null
           cache_hits: number | null
           economia_creditos: number | null
-          pecas_aguardando_revisao: number | null
           pecas_com_imagem: number | null
-          pecas_via_ia: number | null
-          termos_em_cache: number | null
+          pecas_enriquecidas_ia: number | null
+          taxa_acerto_banco: number | null
           total_buscas: number | null
-          total_categorias: number | null
-          total_clientes: number | null
+          total_cache: number | null
           total_diagramas: number | null
-          total_fabricantes: number | null
           total_historicos: number | null
-          total_itens_diagrama: number | null
+          total_hotspots: number | null
           total_orcamentos: number | null
           total_pecas: number | null
-          total_servicos: number | null
+          total_relacionamentos: number | null
           total_veiculos: number | null
         }
         Relationships: []
@@ -1399,6 +1505,64 @@ export type Database = {
           quantidade: number
           raio_hotspot: number
         }[]
+      }
+      obter_pecas_do_veiculo: {
+        Args: { p_veiculo_id: string }
+        Returns: {
+          aplicacao: string
+          categoria: string
+          codigo_interno: string
+          codigo_original: string
+          codigo_paralelo: string
+          confidence: string
+          descricao: string
+          equivalencias: Json
+          fabricante: string
+          imagem_url: string
+          marca: string
+          origem: string
+          peca_id: string
+          subcategoria: string
+          vinculo_id: string
+        }[]
+      }
+      obter_veiculo_por_vin: {
+        Args: { p_vin: string }
+        Returns: {
+          ano: number | null
+          cabine: string | null
+          cambio: string | null
+          chassis: string | null
+          cilindrada: string | null
+          cliente_id: string | null
+          combustivel: string | null
+          confianca: string
+          created_at: string
+          fabricante: string | null
+          fonte: string | null
+          id: string
+          km_atual: number | null
+          marca: string | null
+          modelo: string | null
+          motor: string | null
+          observacoes: string | null
+          owner_id: string | null
+          pais: string | null
+          placa: string | null
+          potencia: string | null
+          serie: string | null
+          tracao: string | null
+          ultimo_acesso: string
+          updated_at: string
+          versao: string | null
+          vin: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "veiculos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       recalcular_orcamento: {
         Args: { p_orcamento_id: string }
