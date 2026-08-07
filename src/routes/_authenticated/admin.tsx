@@ -58,8 +58,8 @@ function AdminDashboard() {
 
       const view = statsView as any;
       const totalBuscas = view?.total_buscas || 0;
-      const totalInternet = view?.buscas_smart || 0;
-      const totalBanco = Math.max(totalBuscas - totalInternet, 0);
+      const totalInternet = view?.buscas_externas || 0;
+      const totalBanco = view?.buscas_locais ?? Math.max(totalBuscas - totalInternet, 0);
       const cacheHits = view?.cache_hits || 0;
 
       return {
@@ -67,7 +67,12 @@ function AdminDashboard() {
         totalBuscas,
         pesquisasBanco: totalBanco,
         pesquisasInternet: totalInternet,
-        pecasEnriquecidas: view?.pecas_via_ia || 0,
+        pecasEnriquecidas: view?.pecas_enriquecidas_ia || 0,
+        totalVeiculos: view?.total_veiculos || 0,
+        totalRelacionamentos: view?.total_relacionamentos || 0,
+        totalDiagramas: view?.total_diagramas || 0,
+        totalCache: view?.total_cache || 0,
+        taxaAcertoBanco: Number(view?.taxa_acerto_banco ?? 0),
         economiaTavily: (totalBanco + cacheHits) * 0.05, // créditos poupados por resposta local/cache
         buscasSemResultado: failedSearches,
         ultimasImportacoes: ultimasImportacoes || []
