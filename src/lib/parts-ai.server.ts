@@ -114,8 +114,42 @@ async function logSmartHistory(context: PartsAiContext, termo: string, result: S
   if (error) console.error(`[PartsAI][Histórico] falha ao registrar Pesquisa Inteligente: ${error.message}`);
 }
 
+const VIN_REGEX = /\b[A-HJ-NPR-Z0-9]{17}\b/i;
+
+/** Camada VIN: veículo no banco (ou API) + peças já relacionadas. */
+async function buscarPorVin(vin: string, context: PartsAiContext) {
+  const veiculo = await resolverVeiculoPorVin(context.supabase, vin, context.userId);
+  if (!veiculo.veiculo_id) return null;
+
+  const pecas = await listarPecasDoVeiculo(context.supabase, veiculo.veiculo_id);
+  await registrarHistorico(context.supabase, context.userId, "vin", vin, {
+    origem: veiculo.source,
+    total: pecas.length,
+  });
+
+  return {
+    encontrado: true,
+    origem: veiculo.source,
+    total: pecas.length,
+    termo_pesquisado: vin,
+    veiculo,
+    resultados: pecas,
+    instrucao:
+      "Veículo identificado pelo banco/API oficial. Use APENAS os dados do veículo e as peças relacionadas listadas. Se a lista de peças estiver vazia, informe que ainda não há peças vinculadas a este chassi.",
+  };
+}
+
 async function buildSearchResultForTerm(termo: string, context: PartsAiContext, coletados?: SmartCandidate[]) {
   const clean = termo.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
+
+  const vinMatch = clean.match(VIN_REGEX);
+  if (vinMatch) {
+    const porVin = await buscarPorVin(vinMatch[0], context);
+    if (porVin) {
+      console.log(`[PartsAI][VIN] resolvido vin="${vinMatch[0]}" pecas=${porVin.total}`);
+      return porVin;
+    }
+  }
 
   console.log(`[PartsAI][Banco] consultado termo="${clean}"`);
   const rows = await buscarPecasNoBanco(context.supabase, clean, 15);
