@@ -37,4 +37,5 @@ export const SaveInput = z.object({
     imagens_adicionais: z.array(z.string()).nullable().optional(),
   }),
   termo_original: z.string().optional(),
+  veiculo_id: z.string().uuid().optional(),
 });
