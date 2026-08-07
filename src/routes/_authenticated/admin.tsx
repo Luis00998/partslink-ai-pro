@@ -104,6 +104,11 @@ function AdminDashboard() {
           <StatCard title="Economia Tavily" value={stats.economiaTavily.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })} icon={TrendingUp} description="Créditos poupados" />
           <StatCard title="Peças Enriquecidas" value={stats.pecasEnriquecidas} icon={Database} description="Salvas via IA" />
           <StatCard title="Falhas de Busca" value={stats.buscasSemResultado.length} icon={AlertTriangle} description="Últimas sem resultado" />
+          <StatCard title="Veículos Cadastrados" value={stats.totalVeiculos} icon={Database} description="Identificados por chassi" />
+          <StatCard title="Relacionamentos" value={stats.totalRelacionamentos} icon={Database} description="Veículo ↔ peça" />
+          <StatCard title="Diagramas" value={stats.totalDiagramas} icon={Database} description="Vistas explodidas" />
+          <StatCard title="Cache de Buscas" value={stats.totalCache} icon={Clock} description="Termos memorizados" />
+          <StatCard title="Taxa de Acerto do Banco" value={`${stats.taxaAcertoBanco}%`} icon={TrendingUp} description="Respostas sem IA" />
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
