@@ -163,52 +163,31 @@ export async function resolverVeiculoPorVin(
   try {
     api = await consultarApiVin(vin);
   } catch (e) {
-    return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
-      fabricante: null,
-      marca: null,
-      modelo: null,
-      ano: null,
-      motor: null,
-      cilindrada: null,
-      potencia: null,
-      combustivel: null,
-      transmissao: null,
-      cabine: null,
-      tracao: null,
-      pais: null,
-      serie: null,
-      confianca: null,
-      error: (e as Error).message,
-    };
+    return vazio(vin, "NHTSA vPIC", (e as Error).message);
   }
 
   const identificado = Boolean(api.marca || api.modelo);
   if (!identificado) {
     return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
-      fabricante: null,
-      marca: null,
-      modelo: null,
+      ...vazio(vin, "NHTSA vPIC", api.apiError ?? "Informação não encontrada para este chassi."),
       ano: api.ano,
+      versao: api.versao,
       motor: api.motor,
       cilindrada: api.cilindrada,
+      cilindros: api.cilindros,
       potencia: api.potencia,
       combustivel: api.combustivel,
       transmissao: api.cambio,
       cabine: api.cabine,
+      tipo_veiculo: api.tipo_veiculo,
       tracao: api.tracao,
       pais: api.pais,
       serie: api.serie,
       confianca: "baixa",
-      error: api.apiError ?? "Informação não encontrada para este chassi.",
     };
   }
 
+  // UPSERT atômico pelo VIN — nunca SELECT → INSERT.
   const { data: inserted, error } = await supabase
     .from("veiculos")
     .upsert(
@@ -219,15 +198,19 @@ export async function resolverVeiculoPorVin(
         modelo: api.modelo,
         fabricante: api.fabricante,
         ano: api.ano ? Number(api.ano) || null : null,
+        versao: api.versao,
         motor: api.motor,
         cilindrada: api.cilindrada,
+        cilindros: api.cilindros,
         potencia: api.potencia,
         combustivel: api.combustivel,
         cambio: api.cambio,
         cabine: api.cabine,
+        tipo_veiculo: api.tipo_veiculo,
         tracao: api.tracao,
         pais: api.pais,
         serie: api.serie,
+        dados_tecnicos: api.dados_tecnicos as never,
         confianca: api.apiError ? "media" : "alta",
         fonte: "NHTSA vPIC",
         owner_id: null,
@@ -241,23 +224,25 @@ export async function resolverVeiculoPorVin(
   if (error || !inserted) {
     console.error(`[Veiculo][Gravação] falha vin="${vin}": ${error?.message ?? "sem retorno"}`);
     return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
+      ...vazio(vin, "NHTSA vPIC", null),
       fabricante: api.fabricante,
       marca: api.marca,
       modelo: api.modelo,
       ano: api.ano,
+      versao: api.versao,
       motor: api.motor,
       cilindrada: api.cilindrada,
+      cilindros: api.cilindros,
       potencia: api.potencia,
       combustivel: api.combustivel,
       transmissao: api.cambio,
       cabine: api.cabine,
+      tipo_veiculo: api.tipo_veiculo,
       tracao: api.tracao,
       pais: api.pais,
       serie: api.serie,
       confianca: "media",
+
       error: null,
     };
   }
