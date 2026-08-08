@@ -1300,10 +1300,12 @@ export type Database = {
           cambio: string | null
           chassis: string | null
           cilindrada: string | null
+          cilindros: string | null
           cliente_id: string | null
           combustivel: string | null
           confianca: string
           created_at: string
+          dados_tecnicos: Json
           fabricante: string | null
           fonte: string | null
           id: string
@@ -1317,6 +1319,7 @@ export type Database = {
           placa: string | null
           potencia: string | null
           serie: string | null
+          tipo_veiculo: string | null
           tracao: string | null
           ultimo_acesso: string
           updated_at: string
@@ -1329,10 +1332,12 @@ export type Database = {
           cambio?: string | null
           chassis?: string | null
           cilindrada?: string | null
+          cilindros?: string | null
           cliente_id?: string | null
           combustivel?: string | null
           confianca?: string
           created_at?: string
+          dados_tecnicos?: Json
           fabricante?: string | null
           fonte?: string | null
           id?: string
@@ -1346,6 +1351,7 @@ export type Database = {
           placa?: string | null
           potencia?: string | null
           serie?: string | null
+          tipo_veiculo?: string | null
           tracao?: string | null
           ultimo_acesso?: string
           updated_at?: string
@@ -1358,10 +1364,12 @@ export type Database = {
           cambio?: string | null
           chassis?: string | null
           cilindrada?: string | null
+          cilindros?: string | null
           cliente_id?: string | null
           combustivel?: string | null
           confianca?: string
           created_at?: string
+          dados_tecnicos?: Json
           fabricante?: string | null
           fonte?: string | null
           id?: string
@@ -1375,6 +1383,7 @@ export type Database = {
           placa?: string | null
           potencia?: string | null
           serie?: string | null
+          tipo_veiculo?: string | null
           tracao?: string | null
           ultimo_acesso?: string
           updated_at?: string
@@ -1534,10 +1543,12 @@ export type Database = {
           cambio: string | null
           chassis: string | null
           cilindrada: string | null
+          cilindros: string | null
           cliente_id: string | null
           combustivel: string | null
           confianca: string
           created_at: string
+          dados_tecnicos: Json
           fabricante: string | null
           fonte: string | null
           id: string
@@ -1551,6 +1562,7 @@ export type Database = {
           placa: string | null
           potencia: string | null
           serie: string | null
+          tipo_veiculo: string | null
           tracao: string | null
           ultimo_acesso: string
           updated_at: string
