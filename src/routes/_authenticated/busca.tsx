@@ -423,28 +423,82 @@ function ImageSearch() {
 }
 
 function ResultList({ items, onOpen }: { items: Array<Record<string, unknown>>; onOpen: (id: string) => void }) {
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+
   return (
-    <div className="mt-6 space-y-2">
-      <div className="text-xs text-muted-foreground">{items.length} resultado(s) — todos vindos do catálogo interno</div>
-      {items.map((p) => (
-        <button
-          key={String(p.id)}
-          onClick={() => onOpen(String(p.id))}
-          className="flex w-full items-center justify-between rounded-md border border-border bg-surface p-3 text-left transition hover:border-primary/40 hover:bg-surface/70"
-        >
-          <div>
-            <div className="text-sm font-medium">{String(p.descricao ?? "—")}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              <span className="font-mono">{String(p.codigo_original ?? "sem código original")}</span>
-              {p.fabricante ? <> · {String(p.fabricante)}</> : null}
+    <div className="mt-6 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {items.length} resultado(s) no catálogo técnico
+        </div>
+        <SourceBadge source="Banco local" />
+      </div>
+
+      {items.map((p) => {
+        const oem = str(p.codigo_original);
+        const interno = str(p.codigo_interno);
+        const paralelo = str(p.codigo_paralelo);
+        const equivalencias = Array.isArray(p.equivalencias) ? p.equivalencias.length : 0;
+        return (
+          <button
+            key={String(p.id)}
+            onClick={() => onOpen(String(p.id))}
+            className="group flex w-full items-start gap-4 rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/50 hover:bg-surface-2/60 hover:shadow-card"
+          >
+            {str(p.imagem_url) ? (
+              <img
+                src={String(p.imagem_url)}
+                alt={String(p.descricao ?? "peça")}
+                loading="lazy"
+                className="h-14 w-14 shrink-0 rounded-lg border border-border/70 object-cover"
+              />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-surface-2/50">
+                <Wrench className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                {oem && (
+                  <span className="rounded border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                    {oem}
+                  </span>
+                )}
+                {str(p.marca) && (
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {String(p.marca)}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-1.5 truncate text-sm font-medium">{String(p.descricao ?? "—")}</div>
+
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {interno && <span className="font-mono">Interno: {interno}</span>}
+                {paralelo && <span className="font-mono">Paralelo: {paralelo}</span>}
+                {str(p.fabricante) && <span>{String(p.fabricante)}</span>}
+                {str(p.categoria) && <span>{String(p.categoria)}</span>}
+                {equivalencias > 0 && <span>{equivalencias} equivalência(s)</span>}
+              </div>
+
+              {str(p.aplicacao) && (
+                <div className="mt-1.5 truncate text-xs text-muted-foreground/80">
+                  Aplicação: {String(p.aplicacao)}
+                </div>
+              )}
             </div>
-          </div>
-          <div className="text-right text-xs text-muted-foreground">abrir ficha →</div>
-        </button>
-      ))}
+
+            <span className="shrink-0 self-center text-xs text-muted-foreground transition group-hover:text-primary">
+              ficha técnica →
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
+
 
 function NoticeWarn({ title, message }: { title?: string; message: string }) {
   return (
