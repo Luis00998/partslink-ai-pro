@@ -41,10 +41,11 @@ function BuscaPage() {
       />
       <PageBody>
         <div className="mx-auto max-w-4xl">
-          <Tabs defaultValue="placa">
+          <Tabs defaultValue="vin">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
-              <TabsTrigger value="placa"><Car className="mr-1.5 h-3.5 w-3.5" />Placa</TabsTrigger>
               <TabsTrigger value="vin"><Fingerprint className="mr-1.5 h-3.5 w-3.5" />Chassi</TabsTrigger>
+              <TabsTrigger value="placa"><Car className="mr-1.5 h-3.5 w-3.5" />Placa</TabsTrigger>
+
               <TabsTrigger value="original"><Barcode className="mr-1.5 h-3.5 w-3.5" />Original</TabsTrigger>
               <TabsTrigger value="fabricante"><Wrench className="mr-1.5 h-3.5 w-3.5" />Fabricante</TabsTrigger>
               <TabsTrigger value="nome"><FileText className="mr-1.5 h-3.5 w-3.5" />Nome</TabsTrigger>
