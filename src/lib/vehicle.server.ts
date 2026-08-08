@@ -12,12 +12,15 @@ export type VehicleInfo = {
   marca: string | null;
   modelo: string | null;
   ano: string | null;
+  versao: string | null;
   motor: string | null;
   cilindrada: string | null;
+  cilindros: string | null;
   potencia: string | null;
   combustivel: string | null;
   transmissao: string | null;
   cabine: string | null;
+  tipo_veiculo: string | null;
   tracao: string | null;
   pais: string | null;
   serie: string | null;
@@ -36,17 +39,46 @@ function mapRow(row: VeiculoRow, source: string): VehicleInfo {
     marca: row.marca ?? null,
     modelo: row.modelo ?? null,
     ano: row.ano ? String(row.ano) : null,
+    versao: row.versao ?? null,
     motor: row.motor ?? null,
     cilindrada: row.cilindrada ?? null,
+    cilindros: row.cilindros ?? null,
     potencia: row.potencia ?? null,
     combustivel: row.combustivel ?? null,
     transmissao: row.cambio ?? null,
     cabine: row.cabine ?? null,
+    tipo_veiculo: row.tipo_veiculo ?? null,
     tracao: row.tracao ?? null,
     pais: row.pais ?? null,
     serie: row.serie ?? null,
     confianca: row.confianca ?? null,
     error: null,
+  };
+}
+
+function vazio(vin: string, source: string, error: string | null): VehicleInfo {
+  return {
+    source,
+    veiculo_id: null,
+    vin,
+    fabricante: null,
+    marca: null,
+    modelo: null,
+    ano: null,
+    versao: null,
+    motor: null,
+    cilindrada: null,
+    cilindros: null,
+    potencia: null,
+    combustivel: null,
+    transmissao: null,
+    cabine: null,
+    tipo_veiculo: null,
+    tracao: null,
+    pais: null,
+    serie: null,
+    confianca: null,
+    error,
   };
 }
 
@@ -61,30 +93,53 @@ async function lerVeiculoNoBanco(supabase: Client, vin: string) {
   return rows[0] ?? null;
 }
 
-/** Camada 2 — API pública NHTSA vPIC (sempre no backend). */
+/**
+ * Camada 2 — API pública NHTSA vPIC (DecodeVinValuesExtended).
+ * Chamada exclusivamente no backend. Campos ausentes viram NULL — nada é inventado.
+ * Os demais atributos técnicos retornados são preservados em `dados_tecnicos`.
+ */
 async function consultarApiVin(vin: string) {
-  const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`;
+  const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/${encodeURIComponent(vin)}?format=json`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error("API de chassi indisponível");
+  if (!res.ok) throw new Error("API de chassi (NHTSA vPIC) indisponível");
   const json = (await res.json()) as { Results?: Array<Record<string, string>> };
   const r = json.Results?.[0] ?? {};
+
+  const extras: Record<string, string> = {};
+  for (const [k, v] of Object.entries(r)) {
+    const val = clean(v);
+    if (val) extras[k] = val;
+  }
+
+  console.log(
+    `[Veiculo][NHTSA] vin="${vin}" make="${r.Make ?? "-"}" model="${r.Model ?? "-"}" ano="${r.ModelYear ?? "-"}" campos=${Object.keys(extras).length}`,
+  );
+
   return {
     marca: clean(r.Make),
     modelo: clean(r.Model),
     fabricante: clean(r.Manufacturer) ?? clean(r.Make),
     ano: clean(r.ModelYear),
-    motor: clean(r.EngineModel) ?? clean(r.EngineConfiguration),
+    versao: clean(r.Trim) ?? clean(r.Trim2),
+    motor:
+      clean(r.EngineModel) ??
+      clean(r.EngineManufacturer) ??
+      clean(r.EngineConfiguration),
     cilindrada: clean(r.DisplacementL),
-    potencia: clean(r.EngineHP),
+    cilindros: clean(r.EngineCylinders),
+    potencia: clean(r.EngineHP) ?? clean(r.EngineKW),
     combustivel: clean(r.FuelTypePrimary),
-    cambio: clean(r.TransmissionStyle),
-    cabine: clean(r.BodyClass),
+    cambio: clean(r.TransmissionStyle) ?? clean(r.TransmissionSpeeds),
+    cabine: clean(r.BodyClass) ?? clean(r.CabType),
+    tipo_veiculo: clean(r.VehicleType),
     tracao: clean(r.DriveType),
     pais: clean(r.PlantCountry),
-    serie: clean(r.Series),
+    serie: clean(r.Series) ?? clean(r.Series2),
+    dados_tecnicos: extras,
     apiError: r.ErrorCode && r.ErrorCode !== "0" ? (r.ErrorText ?? null) : null,
   };
 }
+
 
 /**
  * Fluxo oficial do VIN: banco → API pública → gravação permanente.
@@ -108,52 +163,31 @@ export async function resolverVeiculoPorVin(
   try {
     api = await consultarApiVin(vin);
   } catch (e) {
-    return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
-      fabricante: null,
-      marca: null,
-      modelo: null,
-      ano: null,
-      motor: null,
-      cilindrada: null,
-      potencia: null,
-      combustivel: null,
-      transmissao: null,
-      cabine: null,
-      tracao: null,
-      pais: null,
-      serie: null,
-      confianca: null,
-      error: (e as Error).message,
-    };
+    return vazio(vin, "NHTSA vPIC", (e as Error).message);
   }
 
   const identificado = Boolean(api.marca || api.modelo);
   if (!identificado) {
     return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
-      fabricante: null,
-      marca: null,
-      modelo: null,
+      ...vazio(vin, "NHTSA vPIC", api.apiError ?? "Informação não encontrada para este chassi."),
       ano: api.ano,
+      versao: api.versao,
       motor: api.motor,
       cilindrada: api.cilindrada,
+      cilindros: api.cilindros,
       potencia: api.potencia,
       combustivel: api.combustivel,
       transmissao: api.cambio,
       cabine: api.cabine,
+      tipo_veiculo: api.tipo_veiculo,
       tracao: api.tracao,
       pais: api.pais,
       serie: api.serie,
       confianca: "baixa",
-      error: api.apiError ?? "Informação não encontrada para este chassi.",
     };
   }
 
+  // UPSERT atômico pelo VIN — nunca SELECT → INSERT.
   const { data: inserted, error } = await supabase
     .from("veiculos")
     .upsert(
@@ -164,15 +198,19 @@ export async function resolverVeiculoPorVin(
         modelo: api.modelo,
         fabricante: api.fabricante,
         ano: api.ano ? Number(api.ano) || null : null,
+        versao: api.versao,
         motor: api.motor,
         cilindrada: api.cilindrada,
+        cilindros: api.cilindros,
         potencia: api.potencia,
         combustivel: api.combustivel,
         cambio: api.cambio,
         cabine: api.cabine,
+        tipo_veiculo: api.tipo_veiculo,
         tracao: api.tracao,
         pais: api.pais,
         serie: api.serie,
+        dados_tecnicos: api.dados_tecnicos as never,
         confianca: api.apiError ? "media" : "alta",
         fonte: "NHTSA vPIC",
         owner_id: null,
@@ -186,23 +224,25 @@ export async function resolverVeiculoPorVin(
   if (error || !inserted) {
     console.error(`[Veiculo][Gravação] falha vin="${vin}": ${error?.message ?? "sem retorno"}`);
     return {
-      source: "NHTSA vPIC",
-      veiculo_id: null,
-      vin,
+      ...vazio(vin, "NHTSA vPIC", null),
       fabricante: api.fabricante,
       marca: api.marca,
       modelo: api.modelo,
       ano: api.ano,
+      versao: api.versao,
       motor: api.motor,
       cilindrada: api.cilindrada,
+      cilindros: api.cilindros,
       potencia: api.potencia,
       combustivel: api.combustivel,
       transmissao: api.cambio,
       cabine: api.cabine,
+      tipo_veiculo: api.tipo_veiculo,
       tracao: api.tracao,
       pais: api.pais,
       serie: api.serie,
       confianca: "media",
+
       error: null,
     };
   }
