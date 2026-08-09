@@ -10,7 +10,7 @@ import { PageBody, PageHeader } from "@/components/page-shell";
 import { importPecas, type ImportSummary } from "@/lib/import-pecas.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/importar")({
+export const Route = createFileRoute("/_authenticated/admin_/importar")({
   component: AdminImportarPage,
 });
 
