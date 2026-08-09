@@ -1,0 +1,1 @@
+DELETE FROM public.pecas WHERE codigo_original = 'TESTIMP001';
